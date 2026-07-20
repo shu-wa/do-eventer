@@ -1,0 +1,40 @@
+import { createClient } from 'jsr:@supabase/supabase-js@2';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+Deno.serve(async (request) => {
+  if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  const authorization = request.headers.get('Authorization');
+  if (!authorization?.startsWith('Bearer ')) return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
+  const { data: userData, error: userError } = await admin.auth.getUser(authorization.slice('Bearer '.length));
+  if (userError || !userData.user) return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  const userId = userData.user.id;
+  const [profile, consents, memberships, messages, shares, reports, blocks] = await Promise.all([
+    admin.from('profiles').select('*').eq('id', userId).maybeSingle(),
+    admin.from('consent_records').select('*').eq('user_id', userId),
+    admin.from('event_members').select('*').eq('user_id', userId),
+    admin.from('messages').select('*').eq('author_id', userId),
+    admin.from('collection_shares').select('*').eq('user_id', userId),
+    admin.from('safety_reports').select('*').eq('reporter_id', userId),
+    admin.from('blocked_users').select('*').eq('blocker_id', userId),
+  ]);
+  const eventIds = (memberships.data ?? []).map((membership) => membership.event_id);
+  const { data: events } = eventIds.length ? await admin.from('events').select('*').in('id', eventIds) : { data: [] };
+  const exportData = {
+    exported_at: new Date().toISOString(),
+    account: { id: userId, email: userData.user.email, created_at: userData.user.created_at },
+    profile: profile.data,
+    consent_records: consents.data ?? [],
+    memberships: memberships.data ?? [],
+    events: events ?? [],
+    authored_messages: messages.data ?? [],
+    collection_shares: shares.data ?? [],
+    submitted_reports: reports.data ?? [],
+    blocked_users: blocks.data ?? [],
+  };
+  return new Response(JSON.stringify(exportData), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Content-Disposition': 'attachment; filename="do-eventer-export.json"' } });
+});
