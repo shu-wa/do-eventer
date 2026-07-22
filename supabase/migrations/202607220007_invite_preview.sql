@@ -21,7 +21,7 @@ language sql stable security definer set search_path = '' as $$
     event.time_mode
   from public.event_invites invite
   join public.events event on event.id = invite.event_id
-  where invite.token_hash = encode(digest(upper(trim(raw_token)), 'sha256'), 'hex')
+  where invite.token_hash = encode(extensions.digest(upper(trim(raw_token)), 'sha256'), 'hex')
     and invite.revoked_at is null
     and (invite.expires_at is null or invite.expires_at > now())
     and (invite.max_uses is null or invite.use_count < invite.max_uses)

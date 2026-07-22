@@ -36,16 +36,21 @@ EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=実際のsb_publishableキー
 
 ```powershell
 cd C:\dev\do-eventer
+npx.cmd supabase@latest init
 npx.cmd supabase@latest login
 npx.cmd supabase@latest link --project-ref 実際のPROJECT_REF
+npx.cmd supabase@latest db push --dry-run
 npx.cmd supabase@latest db push
 ```
+
+`init` は最初の1回だけ実行します。`link` の前にログインとProject Refの指定が必要です。まず `--dry-run` で適用対象を確認し、問題がない場合だけ実際の `db push` を実行してください。
 
 適用されるファイルは `supabase/migrations/` 内のSQLすべてです。Version 0.11.0では、特に次のマイグレーションが追加されています。
 
 ```text
 supabase/migrations/202607220006_chat_read_state.sql
 supabase/migrations/202607220007_invite_preview.sql
+supabase/migrations/202607220008_pgcrypto_function_schema.sql
 ```
 
 このSQLには次が含まれます。
