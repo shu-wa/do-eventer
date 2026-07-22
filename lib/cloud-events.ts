@@ -1,10 +1,10 @@
 import { supabase } from '@/lib/supabase';
-import { AttendanceChoice, AvailabilityChoice, CollectionItem, EventDateTimeInput, EventItem, EventLocationInput, NewDateCandidateInput, NewScheduleInput } from '@/types/event';
+import { AttendanceChoice, AvailabilityChoice, CollectionItem, EventDateTimeInput, EventInvitePreview, EventItem, EventLocationInput, NewDateCandidateInput, NewScheduleInput } from '@/types/event';
 
 export const isCloudId = (value?: string) => Boolean(value?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));
 
 type CloudProfile = { id: string; display_name: string; avatar_color: string };
-type CloudMember = { user_id: string; role: 'host' | 'cohost' | 'member'; status: string; attendance_label?: string; joined_at: string; profile?: CloudProfile };
+type CloudMember = { user_id: string; role: 'host' | 'cohost' | 'member'; status: string; attendance_label?: string; chat_read_at?: string; joined_at: string; profile?: CloudProfile };
 type CloudSchedule = { id: string; starts_at: string; title: string; note?: string; item_type: 'move' | 'activity' | 'food' | 'stay' };
 type CloudShare = { user_id: string; amount: number | string; paid: boolean; paid_at?: string };
 type CloudCollection = { id: string; title: string; category: CollectionItem['category']; paid_by_user_id: string; total_amount: number | string; split_method: CollectionItem['splitMethod']; due_date?: string; note?: string; shares?: CloudShare[] };
@@ -88,7 +88,8 @@ export async function fetchCloudEvents(currentUserId: string): Promise<EventItem
       })),
       schedule: (event.schedule ?? []).sort((a, b) => a.starts_at.localeCompare(b.starts_at)).map((item) => ({ id: item.id, day: new Date(item.starts_at).toLocaleDateString('ja-JP'), time: new Date(item.starts_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }), title: item.title, note: item.note, type: item.item_type })),
       collections: (event.collections ?? []).map((collection) => ({ id: collection.id, title: collection.title, category: collection.category, paidByParticipantId: collection.paid_by_user_id, totalAmount: Number(collection.total_amount), splitMethod: collection.split_method, dueDate: collection.due_date, note: collection.note, shares: (collection.shares ?? []).map((share) => ({ participantId: share.user_id, amount: Number(share.amount), paid: share.paid, paidAt: share.paid_at ? new Date(share.paid_at).toLocaleDateString('ja-JP') : undefined })) })),
-      messages: (event.messages ?? []).sort((a, b) => a.created_at.localeCompare(b.created_at)).map((message) => ({ id: message.id, authorId: message.author_id, author: message.author?.display_name ?? 'メンバー', initials: (message.author?.display_name ?? 'ME').slice(0, 2), text: message.body, time: new Date(message.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }), mine: message.author_id === currentUserId, color: message.author?.avatar_color ?? '#68736C' })),
+      messages: (event.messages ?? []).sort((a, b) => a.created_at.localeCompare(b.created_at)).map((message) => ({ id: message.id, authorId: message.author_id, author: message.author?.display_name ?? 'メンバー', initials: (message.author?.display_name ?? 'ME').slice(0, 2), text: message.body, time: new Date(message.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }), createdAt: message.created_at, mine: message.author_id === currentUserId, color: message.author?.avatar_color ?? '#68736C' })),
+      chatLastReadAt: event.members?.find((member) => member.user_id === currentUserId)?.chat_read_at,
     };
   });
 }
@@ -126,10 +127,34 @@ export async function joinCloudEvent(code: string) {
   return row ? { eventId: row.event_id as string, status: row.membership_status as string } : null;
 }
 
+export async function previewCloudEventInvite(code: string): Promise<EventInvitePreview | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase.rpc('preview_event_invite', { raw_token: code.trim().toUpperCase() });
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) return null;
+  const startTime = String(row.start_time).slice(0, 5);
+  const endTime = row.end_time ? String(row.end_time).slice(0, 5) : undefined;
+  return {
+    eventId: row.event_id as string,
+    title: row.event_title as string,
+    startDate: row.start_date as string,
+    endDate: row.end_date as string,
+    dateLabel: dateLabel(row.start_date as string, row.end_date as string),
+    timeLabel: row.time_mode === 'range' && endTime ? `${startTime}–${endTime}` : `${startTime} 開始`,
+  };
+}
+
 export async function syncCloudMessage(eventId: string, messageId: string, body: string) {
   if (!supabase || !isCloudId(eventId)) return;
   const { data } = await supabase.auth.getUser(); if (!data.user) return;
   await supabase.from('messages').insert({ id: messageId, event_id: eventId, author_id: data.user.id, body });
+}
+
+export async function syncCloudChatRead(eventId: string) {
+  if (!supabase || !isCloudId(eventId)) return;
+  const { error } = await supabase.rpc('mark_event_chat_read', { target_event_id: eventId });
+  if (error) throw error;
 }
 
 export async function syncCloudDateTime(eventId: string, input: EventDateTimeInput) {

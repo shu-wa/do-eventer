@@ -6,7 +6,7 @@ export const sampleEvents: EventItem[] = [
     title: '箱根リトリート 2026',
     category: 'TRIP',
     tagline: '温泉と自然を楽しむ、週末の小旅行',
-    host: '佐藤 美咲',
+    host: 'Test',
     startDate: '2026-07-25',
     endDate: '2026-07-26',
     dateLabel: '7月25日（土）– 26日（日）',
@@ -25,7 +25,7 @@ export const sampleEvents: EventItem[] = [
     inviteCode: 'HAKONE26',
     capacity: 12,
     participants: [
-      { id: 'p1', name: '佐藤 美咲', initials: 'MS', role: '主催者', avatarColor: '#285943', attendance: '2日間' },
+      { id: 'p1', name: 'Test', initials: 'TE', role: '主催者', avatarColor: '#285943', attendance: '2日間' },
       { id: 'p2', name: '田中 健太', initials: 'KT', role: '参加者', avatarColor: '#E88A64', attendance: '2日間' },
       { id: 'p3', name: '山本 葵', initials: 'AY', role: '参加者', avatarColor: '#7A8EB0', attendance: '25日のみ' },
       { id: 'p4', name: '鈴木 蓮', initials: 'RS', role: '参加者', avatarColor: '#B28B68', attendance: '2日間' },
@@ -71,9 +71,9 @@ export const sampleEvents: EventItem[] = [
       },
     ],
     messages: [
-      { id: 'm1', author: '佐藤 美咲', initials: 'MS', text: 'みなさん参加ありがとうございます！当日の予定を更新したので確認してください。', time: '10:24', mine: true, color: '#285943' },
-      { id: 'm2', author: '山本 葵', initials: 'AY', text: '確認しました。25日は新宿駅に直接向かいます！', time: '10:31', color: '#7A8EB0' },
-      { id: 'm3', author: '田中 健太', initials: 'KT', text: '車で行く人はいますか？荷物が多ければ乗せられます 🚙', time: '10:35', color: '#E88A64' },
+      { id: 'm1', author: 'Test', initials: 'TE', text: 'みなさん参加ありがとうございます！当日の予定を更新したので確認してください。', time: '10:24', createdAt: '2026-07-22T01:24:00.000Z', mine: true, color: '#285943' },
+      { id: 'm2', author: '山本 葵', initials: 'AY', text: '確認しました。25日は新宿駅に直接向かいます！', time: '10:31', createdAt: '2026-07-22T01:31:00.000Z', color: '#7A8EB0' },
+      { id: 'm3', author: '田中 健太', initials: 'KT', text: '車で行く人はいますか？荷物が多ければ乗せられます 🚙', time: '10:35', createdAt: '2026-07-22T01:35:00.000Z', color: '#E88A64' },
     ],
   },
   {
@@ -101,7 +101,7 @@ export const sampleEvents: EventItem[] = [
     capacity: 20,
     participants: [
       { id: 'p1', name: '田中 健太', initials: 'KT', role: '主催者', avatarColor: '#E88A64', attendance: '参加' },
-      { id: 'p2', name: '佐藤 美咲', initials: 'MS', role: '参加者', avatarColor: '#285943', attendance: '参加' },
+      { id: 'p2', name: 'Test', initials: 'TE', role: '参加者', avatarColor: '#285943', attendance: '参加' },
       { id: 'p3', name: '山本 葵', initials: 'AY', role: '参加者', avatarColor: '#7A8EB0', attendance: '参加' },
     ],
     schedule: [
@@ -120,7 +120,7 @@ export const sampleEvents: EventItem[] = [
         ],
       },
       {
-        id: 'bbq-drinks', title: '飲み物の買い出し', category: 'food', paidByParticipantId: 'p2', totalAmount: 2400, splitMethod: 'equal', note: '美咲さんがまとめて購入。',
+        id: 'bbq-drinks', title: '飲み物の買い出し', category: 'food', paidByParticipantId: 'p2', totalAmount: 2400, splitMethod: 'equal', note: 'Testさんがまとめて購入。',
         shares: [
           { participantId: 'p1', amount: 800, paid: false },
           { participantId: 'p2', amount: 800, paid: true, paidAt: '立替済み' },
@@ -129,7 +129,7 @@ export const sampleEvents: EventItem[] = [
       },
     ],
     messages: [
-      { id: 'm1', author: '田中 健太', initials: 'KT', text: '飲み物は各自で好きなものを持ってきてください！', time: '昨日', mine: false, color: '#E88A64' },
+      { id: 'm1', author: '田中 健太', initials: 'KT', text: '飲み物は各自で好きなものを持ってきてください！', time: '昨日', createdAt: '2026-07-21T07:00:00.000Z', mine: false, color: '#E88A64' },
     ],
   },
   {
@@ -157,7 +157,7 @@ export const sampleEvents: EventItem[] = [
     capacity: 8,
     participants: [
       { id: 'p1', name: '山本 葵', initials: 'AY', role: '主催者', avatarColor: '#7A8EB0', attendance: '参加' },
-      { id: 'p2', name: '佐藤 美咲', initials: 'MS', role: '参加者', avatarColor: '#285943', attendance: '参加' },
+      { id: 'p2', name: 'Test', initials: 'TE', role: '参加者', avatarColor: '#285943', attendance: '参加' },
     ],
     schedule: [
       { id: 's1', day: '8/21', time: '18:50', title: '受付開始', type: 'move' },

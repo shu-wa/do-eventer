@@ -2,7 +2,7 @@ import { sampleEvents } from '@/data/events';
 import { validateUserContent } from '@/constants/safety';
 import { syncOnboardingToCloud, syncProfileToCloud } from '@/lib/cloud-profile';
 import { supabase } from '@/lib/supabase';
-import { confirmCloudDateCandidate, createCloudEvent, createCloudInvite, fetchCloudEvents, joinCloudEvent, reviewCloudJoinRequest, syncCloudAttendance, syncCloudAvailabilityVote, syncCloudCollection, syncCloudDateCandidate, syncCloudDateTime, syncCloudLocation, syncCloudMemberRole, syncCloudMessage, syncCloudPayment, syncCloudSchedule } from '@/lib/cloud-events';
+import { confirmCloudDateCandidate, createCloudEvent, createCloudInvite, fetchCloudEvents, joinCloudEvent, previewCloudEventInvite, reviewCloudJoinRequest, syncCloudAttendance, syncCloudAvailabilityVote, syncCloudChatRead, syncCloudCollection, syncCloudDateCandidate, syncCloudDateTime, syncCloudLocation, syncCloudMemberRole, syncCloudMessage, syncCloudPayment, syncCloudSchedule } from '@/lib/cloud-events';
 import { requestNotificationPermission, syncLocalReminders } from '@/lib/notifications';
 import { useAuth } from '@/context/auth-context';
 import {
@@ -14,6 +14,7 @@ import {
   CollectionItem,
   ConsentRecord,
   EventDateTimeInput,
+  EventInvitePreview,
   EventItem,
   EventLocationInput,
   NewCollectionInput,
@@ -31,10 +32,10 @@ import React, { createContext, PropsWithChildren, useContext, useEffect, useMemo
 const STORAGE_KEY = '@do-eventer/app-data-v2';
 
 const defaultProfile: UserProfile = {
-  name: '佐藤 美咲',
-  handle: '@misaki',
+  name: 'Test',
+  handle: '@tamasyu0202',
   city: 'Tokyo',
-  initials: 'MS',
+  initials: 'TE',
   avatarColor: '#285943',
 };
 
@@ -76,7 +77,10 @@ type EventContextValue = {
   resetLocalData: () => void;
   findEvent: (id: string) => EventItem | undefined;
   joinByCode: (code: string) => EventItem | undefined;
+  previewEventByCode: (code: string) => Promise<{ preview?: EventInvitePreview; error?: string }>;
   joinEventByCode: (code: string) => Promise<{ eventId?: string; pending?: boolean; error?: string }>;
+  getUnreadMessageCount: (eventId: string) => number;
+  markChatRead: (eventId: string) => void;
   createInviteCode: (eventId: string) => Promise<string | null>;
   setMyAttendance: (eventId: string, attendance: AttendanceChoice) => Promise<string | null>;
   reviewJoinRequest: (eventId: string, userId: string, decision: 'approved' | 'declined') => Promise<string | null>;
@@ -108,7 +112,10 @@ const normalizeEvents = (events: EventItem[]): EventItem[] => events.map((event)
   timeMode: event.timeMode ?? (event.timeLabel.match(/\d{1,2}:\d{2}/g)?.length === 2 ? 'range' : 'start'),
   schedule: event.schedule ?? [],
   collections: event.collections ?? [],
-  messages: event.messages ?? [],
+  messages: (event.messages ?? []).map((message) => ({
+    ...message,
+    createdAt: message.createdAt ?? new Date(`${event.startDate}T00:00:00`).toISOString(),
+  })),
   joinRequests: event.joinRequests ?? [],
   dateCandidates: event.dateCandidates ?? [],
 }));
@@ -195,9 +202,38 @@ export function EventProvider({ children }: PropsWithChildren) {
     isHydrated,
     findEvent: (id) => events.find((event) => event.id === id),
     joinByCode: (code) => events.find((event) => event.inviteCode === code.trim().toUpperCase()),
+    previewEventByCode: async (code) => {
+      const normalizedCode = code.trim().toUpperCase();
+      if (!normalizedCode) return { error: '招待コードを入力してください。' };
+      if (!supabase) {
+        const localEvent = events.find((event) => event.inviteCode === normalizedCode);
+        return localEvent ? { preview: {
+          eventId: localEvent.id,
+          title: localEvent.title,
+          startDate: localEvent.startDate,
+          endDate: localEvent.endDate,
+          dateLabel: localEvent.dateLabel,
+          timeLabel: localEvent.timeLabel,
+        } } : { error: 'イベントが見つかりません。招待コードを確認してください。' };
+      }
+      try {
+        const preview = await previewCloudEventInvite(normalizedCode);
+        return preview ? { preview } : { error: 'イベントが見つかりません。招待コードを確認してください。' };
+      } catch {
+        return { error: '招待コードが無効、期限切れ、または使用上限に達しています。' };
+      }
+    },
     joinEventByCode: async (code) => {
       const localEvent = events.find((event) => event.inviteCode === code.trim().toUpperCase());
-      if (!supabase) return localEvent ? { eventId: localEvent.id } : { error: 'イベントが見つかりません。招待コードを確認してください。' };
+      if (!supabase) {
+        if (!localEvent) return { error: 'イベントが見つかりません。招待コードを確認してください。' };
+        const alreadyJoined = localEvent.participants.some((participant) => participant.id === 'me' || participant.name === profile.name);
+        if (!alreadyJoined) setEvents((current) => current.map((event) => event.id !== localEvent.id ? event : {
+          ...event,
+          participants: [...event.participants, { id: 'me', name: profile.name, initials: profile.initials, role: '参加者', avatarColor: profile.avatarColor, attendance: '参加' }],
+        }));
+        return { eventId: localEvent.id };
+      }
       try {
         const result = await joinCloudEvent(code);
         if (!result) return { error: 'イベントが見つかりません。' };
@@ -205,6 +241,26 @@ export function EventProvider({ children }: PropsWithChildren) {
         setEvents(cloudEvents);
         return { eventId: result.eventId, pending: result.status === 'pending' };
       } catch { return { error: '招待コードが無効、期限切れ、または使用上限に達しています。' }; }
+    },
+    getUnreadMessageCount: (eventId) => {
+      const targetEvent = events.find((event) => event.id === eventId);
+      if (!targetEvent) return 0;
+      const lastReadAt = targetEvent.chatLastReadAt ? Date.parse(targetEvent.chatLastReadAt) : Number.NaN;
+      return targetEvent.messages.filter((message) => {
+        if (message.mine) return false;
+        const blocked = blockedUsers.some((item) => message.authorId ? item.userId === message.authorId : item.name === message.author);
+        if (blocked) return false;
+        const createdAt = Date.parse(message.createdAt);
+        return Number.isNaN(lastReadAt) || Number.isNaN(createdAt) || createdAt > lastReadAt;
+      }).length;
+    },
+    markChatRead: (eventId) => {
+      const targetEvent = events.find((event) => event.id === eventId);
+      const latestCreatedAt = targetEvent?.messages.at(-1)?.createdAt;
+      if (!targetEvent || !latestCreatedAt) return;
+      if (targetEvent.chatLastReadAt && Date.parse(targetEvent.chatLastReadAt) >= Date.parse(latestCreatedAt)) return;
+      setEvents((current) => current.map((event) => event.id === eventId ? { ...event, chatLastReadAt: latestCreatedAt } : event));
+      void syncCloudChatRead(eventId).catch(() => undefined);
     },
     createInviteCode: async (eventId) => {
       try {
@@ -432,6 +488,7 @@ export function EventProvider({ children }: PropsWithChildren) {
         initials: profile.initials,
         text,
         time: new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
+        createdAt: new Date().toISOString(),
         mine: true,
         color: profile.avatarColor,
       };

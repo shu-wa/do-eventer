@@ -17,7 +17,7 @@ const scheduleIcon: Record<ScheduleItem['type'], ComponentProps<typeof Ionicons>
 
 export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { findEvent, createInviteCode } = useEvents();
+  const { findEvent, createInviteCode, getUnreadMessageCount } = useEvents();
   const event = findEvent(id);
   const [tab, setTab] = useState<Tab>('概要');
 
@@ -43,6 +43,7 @@ export default function EventDetailScreen() {
   };
   const total = event.collections.reduce((sum, collection) => sum + collection.totalAmount, 0);
   const paid = event.collections.reduce((sum, collection) => sum + collection.shares.filter((share) => share.paid).reduce((shareSum, share) => shareSum + share.amount, 0), 0);
+  const unreadCount = getUnreadMessageCount(event.id);
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
@@ -58,7 +59,7 @@ export default function EventDetailScreen() {
         </View>
 
         <View style={styles.quickActions}>
-          <TouchableOpacity style={styles.quickAction} onPress={() => router.push(`/event/${event.id}/chat`)}><View style={[styles.quickIcon, { backgroundColor: palette.primarySoft }]}><Ionicons name="chatbubbles-outline" size={23} color={palette.primary} /></View><Text style={styles.quickLabel}>チャット</Text><View style={styles.unread}><Text style={styles.unreadText}>3</Text></View></TouchableOpacity>
+          <TouchableOpacity style={styles.quickAction} onPress={() => router.push(`/event/${event.id}/chat`)}><View style={[styles.quickIcon, { backgroundColor: palette.primarySoft }]}><Ionicons name="chatbubbles-outline" size={23} color={palette.primary} /></View><Text style={styles.quickLabel}>チャット</Text>{unreadCount > 0 && <View style={styles.unread}><Text style={styles.unreadText}>{unreadCount > 99 ? '99+' : unreadCount}</Text></View>}</TouchableOpacity>
           <TouchableOpacity style={styles.quickAction} onPress={invite}><View style={[styles.quickIcon, { backgroundColor: palette.accentSoft }]}><Ionicons name="share-social-outline" size={23} color={palette.accent} /></View><Text style={styles.quickLabel}>招待する</Text></TouchableOpacity>
           <TouchableOpacity style={styles.quickAction} onPress={addToCalendar}><View style={[styles.quickIcon, { backgroundColor: '#F7EECF' }]}><Ionicons name="calendar-outline" size={23} color="#9A741C" /></View><Text style={styles.quickLabel}>カレンダー</Text></TouchableOpacity>
         </View>
@@ -153,7 +154,7 @@ const styles = StyleSheet.create({
   quickActions: { flexDirection: 'row', gap: 9, paddingHorizontal: 20, paddingTop: 20 },
   quickAction: { flex: 1, minHeight: 91, borderRadius: 19, backgroundColor: palette.surface, alignItems: 'center', justifyContent: 'center', ...shadow },
   quickIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 7 }, quickLabel: { color: palette.ink, fontSize: 11, fontWeight: '700' },
-  unread: { position: 'absolute', top: 8, right: 12, width: 20, height: 20, borderRadius: 10, backgroundColor: palette.accent, alignItems: 'center', justifyContent: 'center' }, unreadText: { color: palette.surface, fontSize: 9, fontWeight: '800' },
+  unread: { position: 'absolute', top: 8, right: 12, minWidth: 20, height: 20, paddingHorizontal: 5, borderRadius: 10, backgroundColor: palette.accent, alignItems: 'center', justifyContent: 'center' }, unreadText: { color: palette.surface, fontSize: 9, fontWeight: '800' },
   tabs: { paddingHorizontal: 20, paddingVertical: 24, gap: 7 }, tab: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 13, backgroundColor: '#E9E9E2' }, tabActive: { backgroundColor: palette.primary }, tabText: { color: palette.muted, fontSize: 12, fontWeight: '700' }, tabTextActive: { color: palette.surface },
   infoCard: { marginHorizontal: 20, backgroundColor: palette.surface, borderRadius: 23, paddingHorizontal: 16 },
   infoRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 15 }, infoIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }, infoCopy: { flex: 1, marginLeft: 12 }, infoLabel: { color: palette.muted, fontSize: 10, fontWeight: '700', marginBottom: 3 }, infoValue: { color: palette.ink, fontSize: 14, fontWeight: '800', marginBottom: 2 }, infoSub: { color: palette.muted, fontSize: 10 }, separator: { height: StyleSheet.hairlineWidth, backgroundColor: palette.line, marginLeft: 56 },

@@ -1,6 +1,6 @@
 # Do Eventer Supabase設定手順
 
-Version 0.4.0
+Version 0.11.0
 
 ## 現在の動作
 
@@ -41,10 +41,11 @@ npx.cmd supabase@latest link --project-ref 実際のPROJECT_REF
 npx.cmd supabase@latest db push
 ```
 
-適用されるファイル:
+適用されるファイルは `supabase/migrations/` 内のSQLすべてです。Version 0.11.0では、特に次のマイグレーションが追加されています。
 
 ```text
-supabase/migrations/202607200001_initial_schema.sql
+supabase/migrations/202607220006_chat_read_state.sql
+supabase/migrations/202607220007_invite_preview.sql
 ```
 
 このSQLには次が含まれます。
@@ -56,6 +57,8 @@ supabase/migrations/202607200001_initial_schema.sql
 - 期限・回数・失効に対応したハッシュ化招待コード
 - Row Level Securityによるイベント参加者単位のアクセス制御
 - 主催者／共同主催者だけが編集できる権限
+- アカウント単位のチャット既読位置
+- 参加前にイベント名・日時だけを返す招待確認関数
 
 ## 4. アカウント削除・データ書き出し関数を公開する
 

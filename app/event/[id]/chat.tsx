@@ -2,15 +2,19 @@ import { palette } from '@/constants/theme';
 import { useEvents } from '@/context/event-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { findEvent, addMessage, blockedUsers } = useEvents();
+  const { findEvent, addMessage, blockedUsers, markChatRead } = useEvents();
   const event = findEvent(id);
   const [text, setText] = useState('');
+
+  useEffect(() => {
+    markChatRead(id);
+  }, [event?.messages.length, id, markChatRead]);
 
   const send = () => {
     if (!text.trim()) return;

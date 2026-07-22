@@ -70,8 +70,18 @@ export type ChatMessage = {
   initials: string;
   text: string;
   time: string;
+  createdAt: string;
   mine?: boolean;
   color: string;
+};
+
+export type EventInvitePreview = {
+  eventId: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+  dateLabel: string;
+  timeLabel: string;
 };
 
 export type UserProfile = {
@@ -179,6 +189,7 @@ export type EventItem = {
   schedule: ScheduleItem[];
   collections: CollectionItem[];
   messages: ChatMessage[];
+  chatLastReadAt?: string;
 };
 
 export type NewEventInput = {
