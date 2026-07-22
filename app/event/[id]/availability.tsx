@@ -26,7 +26,7 @@ export default function AvailabilityScreen() {
     ? event.participants.find((participant) => participant.id === user.id)
     : event.participants.find((participant) => participant.name === profile.name);
   const participantId = currentParticipant?.id ?? 'me';
-  const canManage = currentParticipant?.role === '主催者';
+  const canManage = currentParticipant?.role === '主催者' || currentParticipant?.role === '共同主催者';
   const candidates = event.dateCandidates ?? [];
 
   const vote = async (candidateId: string, choice: AvailabilityChoice) => {

@@ -17,18 +17,20 @@ const attendanceOptions: { value: AttendanceChoice; icon: keyof typeof Ionicons.
 export default function ParticipantsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
-  const { findEvent, profile, blockedUsers, setMyAttendance, reviewJoinRequest } = useEvents();
+  const { findEvent, profile, blockedUsers, setMemberRole, setMyAttendance, reviewJoinRequest } = useEvents();
   const event = findEvent(id);
   const [query, setQuery] = useState('');
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [reviewingUserId, setReviewingUserId] = useState<string | null>(null);
+  const [roleUpdatingUserId, setRoleUpdatingUserId] = useState<string | null>(null);
   const participants = useMemo(() => event?.participants.filter((person) => person.name.toLowerCase().includes(query.trim().toLowerCase())) ?? [], [event, query]);
 
   if (!event) return <SafeAreaView style={styles.empty}><Text>イベントが見つかりません</Text></SafeAreaView>;
   const currentParticipant = user
     ? event.participants.find((person) => person.id === user.id)
     : event.participants.find((person) => person.name === profile.name);
-  const canManage = currentParticipant?.role === '主催者';
+  const canManage = currentParticipant?.role === '主催者' || currentParticipant?.role === '共同主催者';
+  const canManageRoles = currentParticipant?.role === '主催者';
   const joinRequests = event.joinRequests ?? [];
   const attendingCount = event.participants.filter((person) => !['未定', '不参加'].includes(person.attendance)).length;
 
@@ -45,6 +47,20 @@ export default function ParticipantsScreen() {
     const error = await reviewJoinRequest(event.id, userId, decision);
     setReviewingUserId(null);
     if (error) Alert.alert('参加申請を更新できません', error);
+  };
+
+  const changeRole = (participantId: string, name: string, currentRole: '主催者' | '共同主催者' | '参加者') => {
+    if (currentRole === '主催者') return;
+    const promote = currentRole === '参加者';
+    Alert.alert(promote ? '共同主催者にしますか？' : '共同主催者を解除しますか？', `${name}さんのイベント管理権限を${promote ? '有効' : '無効'}にします。`, [
+      { text: 'キャンセル', style: 'cancel' },
+      { text: promote ? '任命する' : '解除する', style: promote ? 'default' : 'destructive', onPress: async () => {
+        setRoleUpdatingUserId(participantId);
+        const error = await setMemberRole(event.id, participantId, promote ? 'cohost' : 'member');
+        setRoleUpdatingUserId(null);
+        if (error) Alert.alert('権限を変更できません', error);
+      } },
+    ]);
   };
 
   return (
@@ -79,8 +95,8 @@ export default function ParticipantsScreen() {
         <View style={styles.list}>
           {participants.map((item, index) => <View key={item.id} style={[styles.person, index > 0 && styles.personBorder]}>
             <View style={[styles.avatar, { backgroundColor: item.avatarColor }]}><Text style={styles.initials}>{item.initials}</Text></View>
-            <View style={styles.copy}><View style={styles.nameRow}><Text style={styles.name}>{item.name}</Text>{item.role === '主催者' && <View style={styles.hostBadge}><Text style={styles.hostText}>主催者</Text></View>}{blockedUsers.some((blocked) => blocked.name === item.name) && <View style={styles.blockBadge}><Text style={styles.blockText}>ブロック中</Text></View>}</View><Text style={[styles.attendance, item.attendance === '不参加' && styles.notAttending]}>{item.attendance}</Text></View>
-            <TouchableOpacity style={styles.more} onPress={() => router.push({ pathname: '/safety/report', params: { eventId: id, targetName: item.name } })}><Ionicons name="ellipsis-horizontal" size={19} color={palette.muted} /></TouchableOpacity>
+            <View style={styles.copy}><View style={styles.nameRow}><Text style={styles.name}>{item.name}</Text>{item.role !== '参加者' && <View style={[styles.hostBadge, item.role === '共同主催者' && styles.cohostBadge]}><Text style={[styles.hostText, item.role === '共同主催者' && styles.cohostText]}>{item.role}</Text></View>}{blockedUsers.some((blocked) => blocked.name === item.name) && <View style={styles.blockBadge}><Text style={styles.blockText}>ブロック中</Text></View>}</View><Text style={[styles.attendance, item.attendance === '不参加' && styles.notAttending]}>{item.attendance}</Text></View>
+            {roleUpdatingUserId === item.id ? <ActivityIndicator color={palette.primary} /> : canManageRoles && item.role !== '主催者' ? <TouchableOpacity accessibilityRole="button" accessibilityLabel={`${item.name}さんの管理権限を変更`} style={styles.manageRole} onPress={() => changeRole(item.id, item.name, item.role)}><Ionicons name={item.role === '共同主催者' ? 'shield-checkmark' : 'shield-outline'} size={18} color={item.role === '共同主催者' ? palette.accent : palette.primary} /></TouchableOpacity> : <TouchableOpacity style={styles.more} onPress={() => router.push({ pathname: '/safety/report', params: { eventId: id, targetName: item.name } })}><Ionicons name="ellipsis-horizontal" size={19} color={palette.muted} /></TouchableOpacity>}
           </View>)}
           {participants.length === 0 ? <View style={styles.noResult}><Ionicons name="person-outline" size={32} color={palette.muted} /><Text style={styles.noResultText}>該当する参加者はいません</Text></View> : null}
         </View>
@@ -95,5 +111,5 @@ const styles = StyleSheet.create({
   attendanceCard: { borderRadius: 21, backgroundColor: palette.surface, padding: 15, marginBottom: 12 }, sectionCopy: { marginBottom: 12 }, sectionTitle: { color: palette.ink, fontSize: 14, fontWeight: '900' }, sectionText: { color: palette.muted, fontSize: 9, marginTop: 3 }, attendanceOptions: { flexDirection: 'row', gap: 7 }, attendanceButton: { flex: 1, minHeight: 43, borderRadius: 13, borderWidth: 1, borderColor: palette.line, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 }, attendanceButtonActive: { backgroundColor: palette.primary, borderColor: palette.primary }, attendanceButtonText: { color: palette.primary, fontSize: 10, fontWeight: '800' }, attendanceButtonTextActive: { color: palette.surface }, attendanceLoader: { marginTop: 9 },
   requestsCard: { borderRadius: 21, backgroundColor: palette.accentSoft, padding: 15, marginBottom: 12 }, requestsHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }, requestCount: { minWidth: 27, height: 27, borderRadius: 14, backgroundColor: palette.accent, alignItems: 'center', justifyContent: 'center' }, requestCountText: { color: palette.surface, fontSize: 11, fontWeight: '900' }, requestRow: { minHeight: 66, flexDirection: 'row', alignItems: 'center' }, requestBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#E5CBBE' }, requestCopy: { flex: 1, marginLeft: 11 }, reviewActions: { flexDirection: 'row', gap: 7 }, decline: { width: 38, height: 38, borderRadius: 12, backgroundColor: palette.surface, borderWidth: 1, borderColor: '#E7C6C7', alignItems: 'center', justifyContent: 'center' }, approve: { width: 38, height: 38, borderRadius: 12, backgroundColor: palette.primary, alignItems: 'center', justifyContent: 'center' },
   search: { marginBottom: 12, height: 48, borderRadius: 16, backgroundColor: palette.surface, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14 }, searchInput: { flex: 1, marginLeft: 9, color: palette.ink, fontSize: 13 },
-  list: { padding: 15, borderRadius: 22, backgroundColor: palette.surface }, person: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 }, personBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: palette.line }, avatar: { width: 49, height: 49, borderRadius: 17, alignItems: 'center', justifyContent: 'center' }, initials: { color: palette.surface, fontSize: 13, fontWeight: '900' }, copy: { flex: 1, marginLeft: 12 }, nameRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }, name: { color: palette.ink, fontSize: 14, fontWeight: '900' }, hostBadge: { marginLeft: 7, borderRadius: 8, backgroundColor: palette.accentSoft, paddingHorizontal: 7, paddingVertical: 3 }, hostText: { color: palette.accent, fontSize: 8, fontWeight: '900' }, blockBadge: { marginLeft: 6, borderRadius: 8, backgroundColor: '#E5E6E2', paddingHorizontal: 6, paddingVertical: 3 }, blockText: { color: palette.muted, fontSize: 7, fontWeight: '800' }, attendance: { color: palette.muted, fontSize: 10, marginTop: 4 }, notAttending: { color: palette.danger }, more: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.canvas }, noResult: { alignItems: 'center', padding: 32 }, noResultText: { color: palette.muted, marginTop: 8, fontSize: 11 },
+  list: { padding: 15, borderRadius: 22, backgroundColor: palette.surface }, person: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 }, personBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: palette.line }, avatar: { width: 49, height: 49, borderRadius: 17, alignItems: 'center', justifyContent: 'center' }, initials: { color: palette.surface, fontSize: 13, fontWeight: '900' }, copy: { flex: 1, marginLeft: 12 }, nameRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }, name: { color: palette.ink, fontSize: 14, fontWeight: '900' }, hostBadge: { marginLeft: 7, borderRadius: 8, backgroundColor: palette.accentSoft, paddingHorizontal: 7, paddingVertical: 3 }, hostText: { color: palette.accent, fontSize: 8, fontWeight: '900' }, cohostBadge: { backgroundColor: palette.primarySoft }, cohostText: { color: palette.primary }, blockBadge: { marginLeft: 6, borderRadius: 8, backgroundColor: '#E5E6E2', paddingHorizontal: 6, paddingVertical: 3 }, blockText: { color: palette.muted, fontSize: 7, fontWeight: '800' }, attendance: { color: palette.muted, fontSize: 10, marginTop: 4 }, notAttending: { color: palette.danger }, more: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.canvas }, manageRole: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.primarySoft }, noResult: { alignItems: 'center', padding: 32 }, noResultText: { color: palette.muted, marginTop: 8, fontSize: 11 },
 });

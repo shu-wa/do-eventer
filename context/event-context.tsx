@@ -2,7 +2,7 @@ import { sampleEvents } from '@/data/events';
 import { validateUserContent } from '@/constants/safety';
 import { syncOnboardingToCloud, syncProfileToCloud } from '@/lib/cloud-profile';
 import { supabase } from '@/lib/supabase';
-import { createCloudEvent, createCloudInvite, fetchCloudEvents, joinCloudEvent, reviewCloudJoinRequest, syncCloudAttendance, syncCloudAvailabilityVote, syncCloudCollection, syncCloudDateCandidate, syncCloudDateTime, syncCloudLocation, syncCloudMessage, syncCloudPayment, syncCloudSchedule } from '@/lib/cloud-events';
+import { createCloudEvent, createCloudInvite, fetchCloudEvents, joinCloudEvent, reviewCloudJoinRequest, syncCloudAttendance, syncCloudAvailabilityVote, syncCloudCollection, syncCloudDateCandidate, syncCloudDateTime, syncCloudLocation, syncCloudMemberRole, syncCloudMessage, syncCloudPayment, syncCloudSchedule } from '@/lib/cloud-events';
 import { requestNotificationPermission, syncLocalReminders } from '@/lib/notifications';
 import { useAuth } from '@/context/auth-context';
 import {
@@ -82,6 +82,7 @@ type EventContextValue = {
   reviewJoinRequest: (eventId: string, userId: string, decision: 'approved' | 'declined') => Promise<string | null>;
   addDateCandidate: (eventId: string, input: NewDateCandidateInput) => Promise<string | null>;
   setAvailabilityVote: (eventId: string, candidateId: string, choice: AvailabilityChoice) => Promise<string | null>;
+  setMemberRole: (eventId: string, userId: string, role: 'cohost' | 'member') => Promise<string | null>;
 };
 
 const EventContext = createContext<EventContextValue | null>(null);
@@ -270,6 +271,25 @@ export function EventProvider({ children }: PropsWithChildren) {
         return '回答を保存できませんでした。通信状態を確認してください。';
       }
     },
+    setMemberRole: async (eventId, userId, role) => {
+      const targetEvent = events.find((event) => event.id === eventId);
+      const target = targetEvent?.participants.find((participant) => participant.id === userId);
+      if (!targetEvent || !target) return '参加者が見つかりません。';
+      if (target.role === '主催者') return '主催者本人の権限は変更できません。';
+      try {
+        await syncCloudMemberRole(eventId, userId, role);
+        setEvents((current) => current.map((event) => event.id !== eventId ? event : {
+          ...event,
+          participants: event.participants.map((participant) => participant.id !== userId ? participant : {
+            ...participant,
+            role: role === 'cohost' ? '共同主催者' : '参加者',
+          }),
+        }));
+        return null;
+      } catch {
+        return '権限を変更できませんでした。主催者権限や通信状態を確認してください。';
+      }
+    },
     updateProfile: (nextProfile) => {
       setProfile(nextProfile);
       void syncProfileToCloud(nextProfile);
@@ -429,7 +449,7 @@ export function EventProvider({ children }: PropsWithChildren) {
     toggleCollectionPayment: (eventId, collectionId, participantId) => {
       const targetEvent = events.find((event) => event.id === eventId);
       const currentMember = user ? targetEvent?.participants.find((participant) => participant.id === user.id) : undefined;
-      if (supabase && participantId !== user?.id && currentMember?.role !== '主催者') return;
+      if (supabase && participantId !== user?.id && !['主催者', '共同主催者'].includes(currentMember?.role ?? '')) return;
       const currentShare = targetEvent?.collections.find((collection) => collection.id === collectionId)?.shares.find((share) => share.participantId === participantId);
       const nextPaid = !(currentShare?.paid ?? false);
       setEvents((current) => current.map((event) => event.id !== eventId ? event : {

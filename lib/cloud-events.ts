@@ -42,7 +42,7 @@ export async function fetchCloudEvents(currentUserId: string): Promise<EventItem
       id: member.user_id,
       name: member.profile?.display_name ?? 'メンバー',
       initials: (member.profile?.display_name ?? 'ME').split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase(),
-      role: member.role === 'host' || member.role === 'cohost' ? '主催者' as const : '参加者' as const,
+      role: member.role === 'host' ? '主催者' as const : member.role === 'cohost' ? '共同主催者' as const : '参加者' as const,
       avatarColor: member.profile?.avatar_color ?? '#68736C',
       attendance: member.attendance_label ?? '参加',
     }));
@@ -205,5 +205,15 @@ export async function syncCloudAvailabilityVote(candidateId: string, choice: Ava
     choice,
     updated_at: new Date().toISOString(),
   }, { onConflict: 'candidate_id,user_id' });
+  if (error) throw error;
+}
+
+export async function syncCloudMemberRole(eventId: string, userId: string, role: 'cohost' | 'member') {
+  if (!supabase || !isCloudId(eventId) || !isCloudId(userId)) return;
+  const { error } = await supabase.rpc('set_event_member_role', {
+    target_event_id: eventId,
+    target_user_id: userId,
+    new_role: role,
+  });
   if (error) throw error;
 }

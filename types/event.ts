@@ -2,7 +2,7 @@ export type Participant = {
   id: string;
   name: string;
   initials: string;
-  role: '主催者' | '参加者';
+  role: '主催者' | '共同主催者' | '参加者';
   avatarColor: string;
   attendance: string;
 };
