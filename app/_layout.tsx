@@ -33,6 +33,8 @@ export default function RootLayout() {
           <Stack.Screen name="event/[id]/edit-date" options={{ title: '日時を変更', presentation: 'modal' }} />
           <Stack.Screen name="event/[id]/edit-location" options={{ title: '場所を設定', presentation: 'modal' }} />
           <Stack.Screen name="event/[id]/participants" options={{ title: '参加者一覧', headerBackTitle: '詳細' }} />
+          <Stack.Screen name="event/[id]/availability" options={{ title: '候補日の投票', headerBackTitle: '詳細' }} />
+          <Stack.Screen name="event/[id]/availability/new" options={{ title: '候補日を追加', presentation: 'modal' }} />
           <Stack.Screen name="event/[id]/collection/new" options={{ title: '集金項目を追加', presentation: 'modal' }} />
           <Stack.Screen name="event/[id]/collection/[collectionId]" options={{ title: '集金の詳細', headerBackTitle: '集金' }} />
           <Stack.Screen name="create" options={{ title: 'イベントを作成', presentation: 'modal' }} />

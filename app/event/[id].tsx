@@ -71,6 +71,8 @@ export default function EventDetailScreen() {
           <View style={styles.infoCard}>
             <InfoRow icon="calendar-outline" label="日時" value={event.dateLabel} subvalue={event.timeLabel} color={event.accentColor} onPress={() => router.push(`/event/${event.id}/edit-date`)} />
             <View style={styles.separator} />
+            <InfoRow icon="calendar-number-outline" label="候補日の投票" value={(event.dateCandidates?.length ?? 0) > 0 ? `${event.dateCandidates!.length}件の候補日` : '候補日を追加して調整'} subvalue={(event.dateCandidates?.length ?? 0) > 0 ? '○・△・× で参加可否を回答' : '参加者全員の日程をまとめて確認'} color={event.accentColor} onPress={() => router.push(`/event/${event.id}/availability`)} />
+            <View style={styles.separator} />
             <InfoRow icon="location-outline" label="場所" value={event.location} subvalue={event.address} color={event.accentColor} onPress={() => router.push(`/event/${event.id}/edit-location`)} />
             <View style={styles.separator} />
             <InfoRow icon="people-outline" label="参加者" value={`${event.participants.length}人が参加`} subvalue={(event.joinRequests?.length ?? 0) > 0 ? `承認待ち ${event.joinRequests!.length}人 · 定員 ${event.capacity}人` : `定員 ${event.capacity}人`} color={event.accentColor} onPress={() => router.push(`/event/${event.id}/participants`)} />

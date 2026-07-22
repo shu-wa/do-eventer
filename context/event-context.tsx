@@ -2,12 +2,13 @@ import { sampleEvents } from '@/data/events';
 import { validateUserContent } from '@/constants/safety';
 import { syncOnboardingToCloud, syncProfileToCloud } from '@/lib/cloud-profile';
 import { supabase } from '@/lib/supabase';
-import { createCloudEvent, createCloudInvite, fetchCloudEvents, joinCloudEvent, reviewCloudJoinRequest, syncCloudAttendance, syncCloudCollection, syncCloudDateTime, syncCloudLocation, syncCloudMessage, syncCloudPayment, syncCloudSchedule } from '@/lib/cloud-events';
+import { createCloudEvent, createCloudInvite, fetchCloudEvents, joinCloudEvent, reviewCloudJoinRequest, syncCloudAttendance, syncCloudAvailabilityVote, syncCloudCollection, syncCloudDateCandidate, syncCloudDateTime, syncCloudLocation, syncCloudMessage, syncCloudPayment, syncCloudSchedule } from '@/lib/cloud-events';
 import { requestNotificationPermission, syncLocalReminders } from '@/lib/notifications';
 import { useAuth } from '@/context/auth-context';
 import {
   AppSettings,
   AttendanceChoice,
+  AvailabilityChoice,
   BlockedUser,
   ChatMessage,
   CollectionItem,
@@ -16,6 +17,7 @@ import {
   EventItem,
   EventLocationInput,
   NewCollectionInput,
+  NewDateCandidateInput,
   NewEventInput,
   NewScheduleInput,
   OnboardingInput,
@@ -78,6 +80,8 @@ type EventContextValue = {
   createInviteCode: (eventId: string) => Promise<string | null>;
   setMyAttendance: (eventId: string, attendance: AttendanceChoice) => Promise<string | null>;
   reviewJoinRequest: (eventId: string, userId: string, decision: 'approved' | 'declined') => Promise<string | null>;
+  addDateCandidate: (eventId: string, input: NewDateCandidateInput) => Promise<string | null>;
+  setAvailabilityVote: (eventId: string, candidateId: string, choice: AvailabilityChoice) => Promise<string | null>;
 };
 
 const EventContext = createContext<EventContextValue | null>(null);
@@ -104,6 +108,7 @@ const normalizeEvents = (events: EventItem[]): EventItem[] => events.map((event)
   collections: event.collections ?? [],
   messages: event.messages ?? [],
   joinRequests: event.joinRequests ?? [],
+  dateCandidates: event.dateCandidates ?? [],
 }));
 
 export function EventProvider({ children }: PropsWithChildren) {
@@ -161,6 +166,8 @@ export function EventProvider({ children }: PropsWithChildren) {
     const channel = client?.channel(`do-eventer-${user.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, refresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'event_members' }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'date_candidates' }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'date_candidate_votes' }, refresh)
       .subscribe();
     return () => { active = false; if (client && channel) void client.removeChannel(channel); };
   }, [isConfigured, isHydrated, user]);
@@ -228,6 +235,40 @@ export function EventProvider({ children }: PropsWithChildren) {
         }));
         return null;
       } catch { return '参加申請を更新できませんでした。権限や通信状態を確認してください。'; }
+    },
+    addDateCandidate: async (eventId, input) => {
+      const targetEvent = events.find((event) => event.id === eventId);
+      if (!targetEvent) return 'イベントが見つかりません。';
+      const candidateId = Crypto.randomUUID();
+      try {
+        await syncCloudDateCandidate(eventId, candidateId, input);
+        setEvents((current) => current.map((event) => event.id !== eventId ? event : {
+          ...event,
+          dateCandidates: [...(event.dateCandidates ?? []), { id: candidateId, ...input, votes: [] }]
+            .sort((a, b) => `${a.date}${a.startTime}`.localeCompare(`${b.date}${b.startTime}`)),
+        }));
+        return null;
+      } catch {
+        return '候補日を追加できませんでした。主催者権限や通信状態を確認してください。';
+      }
+    },
+    setAvailabilityVote: async (eventId, candidateId, choice) => {
+      const targetEvent = events.find((event) => event.id === eventId);
+      const participantId = user?.id ?? targetEvent?.participants.find((participant) => participant.name === profile.name)?.id ?? 'me';
+      if (!targetEvent?.dateCandidates?.some((candidate) => candidate.id === candidateId)) return '候補日が見つかりません。';
+      try {
+        await syncCloudAvailabilityVote(candidateId, choice);
+        setEvents((current) => current.map((event) => event.id !== eventId ? event : {
+          ...event,
+          dateCandidates: (event.dateCandidates ?? []).map((candidate) => candidate.id !== candidateId ? candidate : {
+            ...candidate,
+            votes: [...candidate.votes.filter((vote) => vote.participantId !== participantId), { participantId, choice }],
+          }),
+        }));
+        return null;
+      } catch {
+        return '回答を保存できませんでした。通信状態を確認してください。';
+      }
     },
     updateProfile: (nextProfile) => {
       setProfile(nextProfile);
@@ -431,6 +472,7 @@ export function EventProvider({ children }: PropsWithChildren) {
           { id: 'me', name: profile.name, initials: profile.initials, role: '主催者', avatarColor: profile.avatarColor, attendance: '参加' },
         ],
         joinRequests: [],
+        dateCandidates: [],
         schedule: [
           { id: 'start', day: input.startDate || '当日', time: input.startTime, title: 'イベント開始', type: 'activity' },
         ],

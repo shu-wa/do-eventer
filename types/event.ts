@@ -17,6 +17,21 @@ export type JoinRequest = {
   requestedAt: string;
 };
 
+export type AvailabilityChoice = 'yes' | 'maybe' | 'no';
+
+export type DateCandidateVote = {
+  participantId: string;
+  choice: AvailabilityChoice;
+};
+
+export type DateCandidate = {
+  id: string;
+  date: string;
+  startTime: string;
+  note?: string;
+  votes: DateCandidateVote[];
+};
+
 export type ScheduleItem = {
   id: string;
   day: string;
@@ -157,6 +172,7 @@ export type EventItem = {
   capacity: number;
   participants: Participant[];
   joinRequests?: JoinRequest[];
+  dateCandidates?: DateCandidate[];
   schedule: ScheduleItem[];
   collections: CollectionItem[];
   messages: ChatMessage[];
@@ -187,3 +203,5 @@ export type NewCollectionInput = {
 };
 
 export type NewScheduleInput = Omit<ScheduleItem, 'id'>;
+
+export type NewDateCandidateInput = Omit<DateCandidate, 'id' | 'votes'>;
