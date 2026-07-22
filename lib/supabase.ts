@@ -5,6 +5,13 @@ import 'react-native-url-polyfill/auto';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL?.trim();
 const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim();
+const isStaticWebRender = Platform.OS === 'web' && typeof window === 'undefined';
+
+const staticRenderStorage = {
+  getItem: async (_key: string) => null,
+  setItem: async (_key: string, _value: string) => undefined,
+  removeItem: async (_key: string) => undefined,
+};
 
 export const isSupabaseConfigured = Boolean(
   supabaseUrl?.startsWith('https://')
@@ -16,9 +23,9 @@ export const isSupabaseConfigured = Boolean(
 export const supabase: SupabaseClient | null = isSupabaseConfigured
   ? createClient(supabaseUrl!, supabasePublishableKey!, {
     auth: {
-      storage: AsyncStorage,
-      autoRefreshToken: true,
-      persistSession: true,
+      storage: isStaticWebRender ? staticRenderStorage : AsyncStorage,
+      autoRefreshToken: !isStaticWebRender,
+      persistSession: !isStaticWebRender,
       detectSessionInUrl: false,
       lock: processLock,
     },
