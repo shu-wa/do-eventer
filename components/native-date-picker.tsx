@@ -30,10 +30,27 @@ export const toDateString = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
+const toLocalNoon = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0, 0);
+
 export const toLocalDate = (value?: string, fallback = new Date()) => {
-  const [year, month, day] = (value || '').split('-').map(Number);
-  const parsed = new Date(year, month - 1, day);
-  return year && month && day && !Number.isNaN(parsed.getTime()) ? parsed : fallback;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value ?? '');
+  if (!match) return toLocalNoon(fallback);
+  const [, yearValue, monthValue, dayValue] = match;
+  const year = Number(yearValue);
+  const month = Number(monthValue);
+  const day = Number(dayValue);
+  const parsed = new Date(year, month - 1, day, 12, 0, 0, 0);
+  return parsed.getFullYear() === year && parsed.getMonth() === month - 1 && parsed.getDate() === day
+    ? parsed
+    : toLocalNoon(fallback);
+};
+
+const clampDate = (date: Date, minimumDate?: Date, maximumDate?: Date) => {
+  const minimum = minimumDate ? toLocalNoon(minimumDate) : undefined;
+  const maximum = maximumDate ? toLocalNoon(maximumDate) : undefined;
+  if (minimum && date < minimum) return minimum;
+  if (maximum && date > maximum) return maximum;
+  return date;
 };
 
 const formatJapaneseDate = (value: string) => {
@@ -59,8 +76,9 @@ export function NativeDateField({
   allowClear = false,
   iosDisplay = 'inline',
 }: NativeDateFieldProps) {
-  const fallback = maximumDate ?? minimumDate ?? new Date();
-  const selectedDate = toLocalDate(value, fallback);
+  const normalizedMinimumDate = minimumDate ? toLocalNoon(minimumDate) : undefined;
+  const normalizedMaximumDate = maximumDate ? toLocalNoon(maximumDate) : undefined;
+  const selectedDate = clampDate(toLocalDate(value, new Date()), normalizedMinimumDate, normalizedMaximumDate);
 
   const handleChange = (event: DateTimePickerEvent, date?: Date) => {
     if (Platform.OS !== 'ios') onOpenChange(false);
@@ -90,8 +108,8 @@ export function NativeDateField({
           value={selectedDate}
           mode="date"
           display={Platform.OS === 'ios' ? iosDisplay : 'calendar'}
-          minimumDate={minimumDate}
-          maximumDate={maximumDate}
+          minimumDate={normalizedMinimumDate}
+          maximumDate={normalizedMaximumDate}
           locale="ja-JP"
           onChange={handleChange}
         />

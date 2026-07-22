@@ -59,7 +59,7 @@ export default function CollectionDetailScreen() {
         </View>
 
         {collection.note && <><Text style={styles.sectionTitle}>メモ</Text><View style={styles.noteCard}><Ionicons name="document-text-outline" size={20} color={category.color} /><Text style={styles.note}>{collection.note}</Text></View></>}
-        <View style={styles.notice}><Ionicons name="information-circle-outline" size={18} color={palette.muted} /><Text style={styles.noticeText}>この試作版では支払状態をタップで変更できます。実際の送金・決済機能はまだ接続されていません。</Text></View>
+        <View style={styles.notice}><Ionicons name="information-circle-outline" size={18} color={palette.muted} /><Text style={styles.noticeText}>支払い方法は現金や各種送金サービスから自由に選べます。この画面では支払い状況だけを記録します。</Text></View>
       </ScrollView>
     </SafeAreaView>
   );

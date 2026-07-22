@@ -1,9 +1,8 @@
-import { legalConfig } from '@/constants/legal';
 import { palette } from '@/constants/theme';
 import { useEvents } from '@/context/event-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SafetyCenterScreen() {
@@ -17,7 +16,6 @@ export default function SafetyCenterScreen() {
         <View style={styles.card}>
           <Row icon="people-outline" title="コミュニティガイドライン" sub="禁止される行為と対応方針" onPress={() => router.push('/legal/community')} />
           <Row icon="document-text-outline" title="利用規約" sub="サービス利用のルール" onPress={() => router.push('/legal/terms')} />
-          <Row icon="mail-outline" title="運営へ連絡" sub={legalConfig.supportEmail} onPress={() => Linking.openURL(`mailto:${legalConfig.supportEmail}?subject=Do%20Eventer%20Safety`)} />
         </View>
         <Text style={styles.sectionTitle}>ブロック中の利用者</Text>
         <View style={styles.card}>

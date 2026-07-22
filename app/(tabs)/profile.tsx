@@ -43,7 +43,7 @@ export default function ProfileScreen() {
           <View style={styles.stat}><Text style={styles.statNumber}>{connections}</Text><Text style={styles.statLabel}>つながり</Text></View>
         </View>
 
-        <View style={[styles.cloudStatus, { backgroundColor: isConfigured ? palette.primarySoft : '#F7EECF' }]}><Ionicons name={isConfigured ? 'cloud-done-outline' : 'phone-portrait-outline'} size={21} color={isConfigured ? palette.primary : '#8C6717'} /><View style={styles.cloudCopy}><Text style={styles.cloudTitle}>{isConfigured ? 'Supabaseクラウド接続' : '端末内開発モード'}</Text><Text style={styles.cloudText}>{isConfigured ? user?.email ?? 'ログイン済み' : '環境設定後に本番ログインへ切り替わります'}</Text></View></View>
+        <View style={[styles.cloudStatus, { backgroundColor: isConfigured ? palette.primarySoft : '#F7EECF' }]}><Ionicons name={isConfigured ? 'cloud-done-outline' : 'phone-portrait-outline'} size={21} color={isConfigured ? palette.primary : '#8C6717'} /><View style={styles.cloudCopy}><Text style={styles.cloudTitle}>{isConfigured ? 'データを同期中' : 'この端末に保存'}</Text><Text style={styles.cloudText}>{isConfigured ? user?.email ?? 'ログイン済み' : 'イベント情報はこの端末に保存されています'}</Text></View></View>
 
         <Text style={styles.sectionTitle}>設定</Text>
         <View style={styles.settings}>
@@ -54,11 +54,11 @@ export default function ProfileScreen() {
           <TouchableOpacity style={styles.row} onPress={() => router.push('/privacy-center')}><View style={styles.rowIcon}><Ionicons name="lock-closed-outline" size={20} color={palette.primary} /></View><View style={styles.rowCopy}><Text style={styles.rowLabel}>プライバシーセンター</Text><Text style={styles.rowSub}>データ利用、書き出し、アカウント削除</Text></View><Ionicons name="chevron-forward" size={18} color={palette.muted} /></TouchableOpacity>
           <TouchableOpacity style={styles.row} onPress={() => router.push('/safety')}><View style={styles.rowIcon}><Ionicons name="shield-checkmark-outline" size={20} color={palette.primary} /></View><View style={styles.rowCopy}><Text style={styles.rowLabel}>安全センター</Text><Text style={styles.rowSub}>通報、ブロック、コミュニティルール</Text></View><Ionicons name="chevron-forward" size={18} color={palette.muted} /></TouchableOpacity>
           <TouchableOpacity style={styles.row} onPress={() => router.push('/legal/terms')}><View style={styles.rowIcon}><Ionicons name="document-text-outline" size={20} color={palette.primary} /></View><View style={styles.rowCopy}><Text style={styles.rowLabel}>規約とポリシー</Text><Text style={styles.rowSub}>利用規約と同意内容を確認</Text></View><Ionicons name="chevron-forward" size={18} color={palette.muted} /></TouchableOpacity>
-          <TouchableOpacity style={styles.row} onPress={() => Alert.alert('ヘルプ', 'イベント作成、招待コード、集金、予定、チャットをローカルで試せます。不具合がある場合はアプリを再読み込みしてください。')}><View style={styles.rowIcon}><Ionicons name="help-circle-outline" size={20} color={palette.primary} /></View><View style={styles.rowCopy}><Text style={styles.rowLabel}>ヘルプ</Text><Text style={styles.rowSub}>使い方を確認</Text></View><Ionicons name="chevron-forward" size={18} color={palette.muted} /></TouchableOpacity>
+          <TouchableOpacity style={styles.row} onPress={() => Alert.alert('ヘルプ', 'イベント作成、招待コード、集金、予定、チャットを利用できます。問題が解消しない場合はアプリを再起動してください。')}><View style={styles.rowIcon}><Ionicons name="help-circle-outline" size={20} color={palette.primary} /></View><View style={styles.rowCopy}><Text style={styles.rowLabel}>ヘルプ</Text><Text style={styles.rowSub}>使い方を確認</Text></View><Ionicons name="chevron-forward" size={18} color={palette.muted} /></TouchableOpacity>
           {isConfigured && <TouchableOpacity style={styles.row} onPress={() => Alert.alert('ログアウトしますか？', undefined, [{ text: 'キャンセル', style: 'cancel' }, { text: 'ログアウト', style: 'destructive', onPress: signOut }])}><View style={styles.rowIcon}><Ionicons name="log-out-outline" size={20} color={palette.primary} /></View><View style={styles.rowCopy}><Text style={styles.rowLabel}>ログアウト</Text><Text style={styles.rowSub}>この端末のセッションを終了</Text></View><Ionicons name="chevron-forward" size={18} color={palette.muted} /></TouchableOpacity>}
         </View>
-        <TouchableOpacity style={styles.resetButton} onPress={confirmReset}><Ionicons name="refresh-outline" size={17} color={palette.danger} /><Text style={styles.resetText}>試作データを初期化</Text></TouchableOpacity>
-        <Text style={styles.version}>Do Eventer invite preview & unread chat · Version 0.11.0</Text>
+        {!isConfigured && <TouchableOpacity style={styles.resetButton} onPress={confirmReset}><Ionicons name="refresh-outline" size={17} color={palette.danger} /><Text style={styles.resetText}>保存データを初期化</Text></TouchableOpacity>}
+        <Text style={styles.version}>Do Eventer · Version 0.12.0</Text>
       </ScrollView>
     </SafeAreaView>
   );

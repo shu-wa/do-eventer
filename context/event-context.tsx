@@ -536,8 +536,7 @@ export function EventProvider({ children }: PropsWithChildren) {
           amount: input.splitMethod === 'custom'
             ? input.customAmounts?.[participantId] ?? 0
             : baseAmount + (index === 0 ? remainder : 0),
-          paid: participantId === input.paidByParticipantId,
-          paidAt: participantId === input.paidByParticipantId ? '立替済み' : undefined,
+          paid: false,
         })),
       };
       setEvents((current) => current.map((event) => event.id === eventId
@@ -606,7 +605,7 @@ export function EventProvider({ children }: PropsWithChildren) {
           totalAmount: input.initialFee,
           splitMethod: 'equal',
           note: 'イベント作成時に登録した参加費です。',
-          shares: [{ participantId: 'me', amount: input.initialFee, paid: true, paidAt: '立替済み' }],
+          shares: [{ participantId: 'me', amount: input.initialFee, paid: false }],
         }] : [],
         messages: [],
       };

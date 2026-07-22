@@ -37,7 +37,7 @@ export default function AuthScreen() {
     <Text style={styles.label}>パスワード</Text><View style={styles.inputWrap}><Ionicons name="lock-closed-outline" size={19} color={palette.muted} /><TextInput style={styles.input} value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" placeholder="8文字以上" placeholderTextColor="#9AA39E" /></View>
     {mode === 'login' && <TouchableOpacity style={styles.forgot} onPress={resetPassword}><Text style={styles.forgotText}>パスワードを忘れた場合</Text></TouchableOpacity>}
     <TouchableOpacity style={[styles.submit, loading && styles.disabled]} onPress={submit} disabled={loading}><Text style={styles.submitText}>{loading ? '処理中…' : mode === 'signup' ? '登録する' : 'ログイン'}</Text><Ionicons name="arrow-forward" size={18} color={palette.surface} /></TouchableOpacity>
-    <View style={styles.security}><Ionicons name="shield-checkmark-outline" size={17} color={palette.primary} /><Text style={styles.securityText}>通信は暗号化されます。パスワードをアプリ内へ平文保存しません。</Text></View>
+    <View style={styles.security}><Ionicons name="shield-checkmark-outline" size={17} color={palette.primary} /><Text style={styles.securityText}>ログイン情報は安全に取り扱います。</Text></View>
   </ScrollView></KeyboardAvoidingView></SafeAreaView>;
 }
 

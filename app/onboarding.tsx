@@ -54,7 +54,7 @@ export default function OnboardingScreen() {
             <Input label="表示名" value={name} onChangeText={setName} placeholder="例：佐藤 美咲" autoFocus />
             <Input label="メールアドレス" value={email} onChangeText={setEmail} placeholder="you@example.com" keyboardType="email-address" autoCapitalize="none" />
             <NativeDateField label="生年月日" value={dateOfBirth} onChange={setDateOfBirth} open={birthDateOpen} onOpenChange={setBirthDateOpen} minimumDate={new Date(1900, 0, 1)} maximumDate={getMaximumBirthDate()} emptyLabel="生年月日を選択" iosDisplay="spinner" />
-            <View style={styles.notice}><Ionicons name="lock-closed-outline" size={17} color={palette.primary} /><Text style={styles.noticeText}>生年月日は年齢確認に使います。現在の開発版では登録情報はこの端末内だけに保存されます。</Text></View>
+            <View style={styles.notice}><Ionicons name="lock-closed-outline" size={17} color={palette.primary} /><Text style={styles.noticeText}>生年月日は年齢確認のために使用し、プロフィールには公開されません。</Text></View>
             <PrimaryButton label="同意内容を確認" onPress={nextFromProfile} />
             <BackButton onPress={() => setStep(0)} />
           </>}
