@@ -13,22 +13,20 @@ function extractCode(data: string) {
 }
 
 export default function ScanScreen() {
-  const { joinByCode } = useEvents();
+  const { joinEventByCode } = useEvents();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
 
   if (!permission) return <View style={styles.loading} />;
   if (!permission.granted) return <SafeAreaView style={styles.permission}><View style={styles.permissionIcon}><Ionicons name="camera-outline" size={34} color={palette.primary} /></View><Text style={styles.permissionTitle}>カメラの許可が必要です</Text><Text style={styles.permissionText}>招待QRコードを読み取るために、Do Eventerのカメラ利用を許可してください。</Text><TouchableOpacity style={styles.permissionButton} onPress={requestPermission}><Text style={styles.permissionButtonText}>カメラを許可する</Text></TouchableOpacity></SafeAreaView>;
 
-  const handleScan = ({ data }: { data: string }) => {
+  const handleScan = async ({ data }: { data: string }) => {
     if (scanned) return;
     setScanned(true);
-    const event = joinByCode(extractCode(data));
-    if (!event) {
-      Alert.alert('イベントが見つかりません', 'Do Eventerの招待QRコードか確認してください。', [{ text: 'もう一度', onPress: () => setScanned(false) }]);
-      return;
-    }
-    router.replace(`/event/${event.id}`);
+    const result = await joinEventByCode(extractCode(data));
+    if (result.error) return Alert.alert('イベントが見つかりません', result.error, [{ text: 'もう一度', onPress: () => setScanned(false) }]);
+    if (result.pending) return Alert.alert('参加申請を送りました', '主催者が承認するとイベントが表示されます。', [{ text: '閉じる', onPress: () => router.dismiss() }]);
+    if (result.eventId) router.replace(`/event/${result.eventId}`);
   };
 
   return <View style={styles.container}><CameraView style={StyleSheet.absoluteFill} facing="back" barcodeScannerSettings={{ barcodeTypes: ['qr'] }} onBarcodeScanned={scanned ? undefined : handleScan} /><SafeAreaView style={styles.overlay}><View style={styles.copy}><Text style={styles.title}>招待QRコードを枠内に</Text><Text style={styles.text}>読み取るとイベントを確認できます</Text></View><View style={styles.frame}><View style={[styles.corner, styles.topLeft]} /><View style={[styles.corner, styles.topRight]} /><View style={[styles.corner, styles.bottomLeft]} /><View style={[styles.corner, styles.bottomRight]} /></View><TouchableOpacity style={styles.cancel} onPress={() => router.back()}><Ionicons name="close" size={22} color={palette.surface} /><Text style={styles.cancelText}>キャンセル</Text></TouchableOpacity></SafeAreaView></View>;

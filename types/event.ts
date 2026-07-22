@@ -7,6 +7,16 @@ export type Participant = {
   attendance: string;
 };
 
+export type AttendanceChoice = '参加' | '未定' | '不参加';
+
+export type JoinRequest = {
+  userId: string;
+  name: string;
+  initials: string;
+  avatarColor: string;
+  requestedAt: string;
+};
+
 export type ScheduleItem = {
   id: string;
   day: string;
@@ -146,6 +156,7 @@ export type EventItem = {
   inviteCode: string;
   capacity: number;
   participants: Participant[];
+  joinRequests?: JoinRequest[];
   schedule: ScheduleItem[];
   collections: CollectionItem[];
   messages: ChatMessage[];

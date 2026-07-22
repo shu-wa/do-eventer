@@ -2,10 +2,11 @@ import { sampleEvents } from '@/data/events';
 import { validateUserContent } from '@/constants/safety';
 import { syncOnboardingToCloud, syncProfileToCloud } from '@/lib/cloud-profile';
 import { supabase } from '@/lib/supabase';
-import { createCloudEvent, createCloudInvite, fetchCloudEvents, joinCloudEvent, syncCloudCollection, syncCloudDateTime, syncCloudLocation, syncCloudMessage, syncCloudPayment, syncCloudSchedule } from '@/lib/cloud-events';
+import { createCloudEvent, createCloudInvite, fetchCloudEvents, joinCloudEvent, reviewCloudJoinRequest, syncCloudAttendance, syncCloudCollection, syncCloudDateTime, syncCloudLocation, syncCloudMessage, syncCloudPayment, syncCloudSchedule } from '@/lib/cloud-events';
 import { useAuth } from '@/context/auth-context';
 import {
   AppSettings,
+  AttendanceChoice,
   BlockedUser,
   ChatMessage,
   CollectionItem,
@@ -74,6 +75,8 @@ type EventContextValue = {
   joinByCode: (code: string) => EventItem | undefined;
   joinEventByCode: (code: string) => Promise<{ eventId?: string; pending?: boolean; error?: string }>;
   createInviteCode: (eventId: string) => Promise<string | null>;
+  setMyAttendance: (eventId: string, attendance: AttendanceChoice) => Promise<string | null>;
+  reviewJoinRequest: (eventId: string, userId: string, decision: 'approved' | 'declined') => Promise<string | null>;
 };
 
 const EventContext = createContext<EventContextValue | null>(null);
@@ -99,6 +102,7 @@ const normalizeEvents = (events: EventItem[]): EventItem[] => events.map((event)
   schedule: event.schedule ?? [],
   collections: event.collections ?? [],
   messages: event.messages ?? [],
+  joinRequests: event.joinRequests ?? [],
 }));
 
 export function EventProvider({ children }: PropsWithChildren) {
@@ -182,6 +186,42 @@ export function EventProvider({ children }: PropsWithChildren) {
         if (code) setEvents((current) => current.map((event) => event.id === eventId ? { ...event, inviteCode: code } : event));
         return code;
       } catch { return null; }
+    },
+    setMyAttendance: async (eventId, attendance) => {
+      const targetEvent = events.find((event) => event.id === eventId);
+      const currentParticipant = user
+        ? targetEvent?.participants.find((participant) => participant.id === user.id)
+        : targetEvent?.participants.find((participant) => participant.name === profile.name);
+      if (!targetEvent || !currentParticipant) return 'このイベントの参加者ではありません。';
+      try {
+        await syncCloudAttendance(eventId, attendance);
+        setEvents((current) => current.map((event) => event.id !== eventId ? event : {
+          ...event,
+          participants: event.participants.map((participant) => participant.id === currentParticipant.id ? { ...participant, attendance } : participant),
+        }));
+        return null;
+      } catch { return '参加可否を更新できませんでした。通信状態を確認してください。'; }
+    },
+    reviewJoinRequest: async (eventId, userId, decision) => {
+      const targetEvent = events.find((event) => event.id === eventId);
+      const request = targetEvent?.joinRequests?.find((item) => item.userId === userId);
+      if (!targetEvent || !request) return '参加申請が見つかりません。';
+      try {
+        await reviewCloudJoinRequest(eventId, userId, decision);
+        setEvents((current) => current.map((event) => event.id !== eventId ? event : {
+          ...event,
+          joinRequests: (event.joinRequests ?? []).filter((item) => item.userId !== userId),
+          participants: decision === 'approved' ? [...event.participants, {
+            id: request.userId,
+            name: request.name,
+            initials: request.initials,
+            role: '参加者' as const,
+            avatarColor: request.avatarColor,
+            attendance: '未定',
+          }] : event.participants,
+        }));
+        return null;
+      } catch { return '参加申請を更新できませんでした。権限や通信状態を確認してください。'; }
     },
     updateProfile: (nextProfile) => {
       setProfile(nextProfile);
@@ -372,6 +412,7 @@ export function EventProvider({ children }: PropsWithChildren) {
         participants: [
           { id: 'me', name: profile.name, initials: profile.initials, role: '主催者', avatarColor: profile.avatarColor, attendance: '参加' },
         ],
+        joinRequests: [],
         schedule: [
           { id: 'start', day: input.startDate || '当日', time: input.startTime, title: 'イベント開始', type: 'activity' },
         ],

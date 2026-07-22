@@ -73,7 +73,7 @@ export default function EventDetailScreen() {
             <View style={styles.separator} />
             <InfoRow icon="location-outline" label="場所" value={event.location} subvalue={event.address} color={event.accentColor} onPress={() => router.push(`/event/${event.id}/edit-location`)} />
             <View style={styles.separator} />
-            <InfoRow icon="people-outline" label="参加者" value={`${event.participants.length}人が参加`} subvalue={`定員 ${event.capacity}人`} color={event.accentColor} onPress={() => router.push(`/event/${event.id}/participants`)} />
+            <InfoRow icon="people-outline" label="参加者" value={`${event.participants.length}人が参加`} subvalue={(event.joinRequests?.length ?? 0) > 0 ? `承認待ち ${event.joinRequests!.length}人 · 定員 ${event.capacity}人` : `定員 ${event.capacity}人`} color={event.accentColor} onPress={() => router.push(`/event/${event.id}/participants`)} />
           </View>
           <SectionTitle eyebrow="ABOUT" title="イベントについて" />
           <View style={styles.textCard}><Text style={styles.description}>{event.description}</Text></View>
