@@ -18,12 +18,12 @@ export default function ChatScreen() {
     if (error) return Alert.alert('このメッセージは送信できません', error);
     setText('');
   };
-  const visibleMessages = (event?.messages ?? []).filter((message) => !blockedUsers.some((user) => user.name === message.author));
+  const visibleMessages = (event?.messages ?? []).filter((message) => !blockedUsers.some((blocked) => message.authorId ? blocked.userId === message.authorId : blocked.name === message.author));
   const hiddenCount = (event?.messages ?? []).length - visibleMessages.length;
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={88}>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={88}>
         <View style={styles.eventBar}>
           <View style={[styles.eventIcon, { backgroundColor: event?.coverColor || palette.primarySoft }]}><Ionicons name="calendar" size={19} color={event?.accentColor || palette.primary} /></View>
           <View style={styles.eventCopy}><Text style={styles.eventTitle} numberOfLines={1}>{event?.title || 'イベント'}</Text><Text style={styles.memberText}>{event?.participants.length || 0}人のメンバー · 3人オンライン</Text></View>
@@ -35,8 +35,8 @@ export default function ChatScreen() {
           {visibleMessages.map((message) => <View key={message.id} style={[styles.messageRow, message.mine && styles.messageRowMine]}>
             {!message.mine && <View style={[styles.avatar, { backgroundColor: message.color }]}><Text style={styles.avatarText}>{message.initials}</Text></View>}
             <View style={[styles.messageContent, message.mine && styles.messageContentMine]}>
-              {!message.mine && <View style={styles.authorRow}><Text style={styles.author}>{message.author}</Text><TouchableOpacity onPress={() => router.push({ pathname: '/safety/report', params: { eventId: id, messageId: message.id, targetName: message.author } })}><Ionicons name="ellipsis-horizontal" size={16} color={palette.muted} /></TouchableOpacity></View>}
-              <TouchableOpacity activeOpacity={0.8} onLongPress={() => !message.mine && router.push({ pathname: '/safety/report', params: { eventId: id, messageId: message.id, targetName: message.author } })}><View style={[styles.bubble, message.mine ? styles.bubbleMine : styles.bubbleOther]}><Text style={[styles.messageText, message.mine && styles.messageTextMine]}>{message.text}</Text></View></TouchableOpacity>
+              {!message.mine && <View style={styles.authorRow}><Text style={styles.author}>{message.author}</Text><TouchableOpacity onPress={() => router.push({ pathname: '/safety/report', params: { eventId: id, messageId: message.id, targetUserId: message.authorId, targetName: message.author } })}><Ionicons name="ellipsis-horizontal" size={16} color={palette.muted} /></TouchableOpacity></View>}
+              <TouchableOpacity activeOpacity={0.8} onLongPress={() => !message.mine && router.push({ pathname: '/safety/report', params: { eventId: id, messageId: message.id, targetUserId: message.authorId, targetName: message.author } })}><View style={[styles.bubble, message.mine ? styles.bubbleMine : styles.bubbleOther]}><Text style={[styles.messageText, message.mine && styles.messageTextMine]}>{message.text}</Text></View></TouchableOpacity>
               <Text style={[styles.time, message.mine && styles.timeMine]}>{message.time}</Text>
             </View>
           </View>)}

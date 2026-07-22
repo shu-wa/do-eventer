@@ -22,7 +22,7 @@ export default function SafetyCenterScreen() {
         <Text style={styles.sectionTitle}>ブロック中の利用者</Text>
         <View style={styles.card}>
           {blockedUsers.length === 0 && <View style={styles.empty}><Ionicons name="person-remove-outline" size={24} color={palette.muted} /><Text style={styles.emptyText}>ブロック中の利用者はいません</Text></View>}
-          {blockedUsers.map((user) => <View key={user.key} style={styles.blocked}><View style={styles.blockAvatar}><Text style={styles.blockAvatarText}>{user.name.slice(0, 1)}</Text></View><View style={styles.copy}><Text style={styles.rowTitle}>{user.name}</Text><Text style={styles.rowText}>{new Date(user.blockedAt).toLocaleDateString('ja-JP')}から非表示</Text></View><TouchableOpacity style={styles.unblock} onPress={() => toggleBlockUser(user.name)}><Text style={styles.unblockText}>解除</Text></TouchableOpacity></View>)}
+          {blockedUsers.map((user) => <View key={user.key} style={styles.blocked}><View style={styles.blockAvatar}><Text style={styles.blockAvatarText}>{user.name.slice(0, 1)}</Text></View><View style={styles.copy}><Text style={styles.rowTitle}>{user.name}</Text><Text style={styles.rowText}>{new Date(user.blockedAt).toLocaleDateString('ja-JP')}から非表示</Text></View><TouchableOpacity style={styles.unblock} onPress={() => toggleBlockUser(user.name, user.userId)}><Text style={styles.unblockText}>解除</Text></TouchableOpacity></View>)}
         </View>
         <View style={styles.status}><Ionicons name="checkmark-circle-outline" size={20} color={palette.primary} /><Text style={styles.statusText}>送信した通報: {reports.length}件</Text></View>
         <Text style={styles.emergency}>命や身体に差し迫った危険がある場合は、アプリへの通報ではなく地域の警察・緊急窓口へ連絡してください。</Text>

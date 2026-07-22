@@ -35,7 +35,7 @@ export default function NewScheduleScreen() {
     router.back();
   };
 
-  return <SafeAreaView style={styles.safe} edges={['bottom']}><KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+  return <SafeAreaView style={styles.safe} edges={['bottom']}><KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}><ScrollView contentContainerStyle={styles.content} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled" keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}>
     <View style={styles.intro}><Ionicons name="time" size={23} color={palette.primary} /><View><Text style={styles.introTitle}>{event?.title}</Text><Text style={styles.introText}>当日の流れへ新しい予定を追加します</Text></View></View>
     <NativeDateField label="予定日" value={day} onChange={setDay} open={dateOpen} onOpenChange={(open) => { setDateOpen(open); if (open) setTimeOpen(false); }} minimumDate={event ? new Date(`${event.startDate}T00:00:00`) : undefined} maximumDate={event ? new Date(`${event.endDate}T23:59:59`) : undefined} />
     <NativeTimeField label="開始時間" value={time} onChange={setTime} open={timeOpen} onOpenChange={(open) => { setTimeOpen(open); if (open) setDateOpen(false); }} />

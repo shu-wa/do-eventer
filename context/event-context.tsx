@@ -70,7 +70,7 @@ type EventContextValue = {
   setAnalyticsEnabled: (enabled: boolean) => void;
   setCrashReportsEnabled: (enabled: boolean) => void;
   submitSafetyReport: (report: Omit<SafetyReport, 'id' | 'createdAt' | 'status'>) => void;
-  toggleBlockUser: (name: string) => void;
+  toggleBlockUser: (name: string, userId?: string) => void;
   exportUserData: () => Promise<string>;
   deleteLocalAccount: () => Promise<string | null>;
   resetLocalData: () => void;
@@ -153,6 +153,16 @@ export function EventProvider({ children }: PropsWithChildren) {
     if (!isHydrated) return;
     AsyncStorage.setItem(storageKey, JSON.stringify({ events, profile, settings, reports, consentHistory, blockedUsers })).catch(() => undefined);
   }, [blockedUsers, consentHistory, events, isHydrated, profile, reports, settings, storageKey]);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+    setBlockedUsers((current) => {
+      const filtered = current.filter((blocked) => blocked.userId
+        ? blocked.userId !== user?.id
+        : blocked.name.trim().toLowerCase() !== profile.name.trim().toLowerCase());
+      return filtered.length === current.length ? current : filtered;
+    });
+  }, [isHydrated, profile.name, user?.id]);
 
   useEffect(() => {
     if (!isHydrated) return;
@@ -362,20 +372,30 @@ export function EventProvider({ children }: PropsWithChildren) {
     },
     setCrashReportsEnabled: (enabled) => setSettings((current) => ({ ...current, crashReportsEnabled: enabled })),
     submitSafetyReport: (report) => {
+      const reportingSelf = report.targetUserId
+        ? report.targetUserId === user?.id
+        : report.targetUserName?.trim().toLowerCase() === profile.name.trim().toLowerCase();
+      if (reportingSelf) return;
       setReports((current) => [...current, { ...report, id: `report-${Date.now()}`, createdAt: new Date().toISOString(), status: 'received' }]);
       const client = supabase;
       if (client) void client.auth.getUser().then(({ data }) => data.user && client.from('safety_reports').insert({
         reporter_id: data.user.id,
         event_id: report.eventId?.match(/^[0-9a-f-]{36}$/i) ? report.eventId : null,
         message_id: report.messageId?.match(/^[0-9a-f-]{36}$/i) ? report.messageId : null,
+        target_user_id: report.targetUserId?.match(/^[0-9a-f-]{36}$/i) ? report.targetUserId : null,
         target_user_name: report.targetUserName,
         reason: report.reason,
         details: report.details,
       }));
     },
-    toggleBlockUser: (name) => setBlockedUsers((current) => current.some((user) => user.name === name)
-      ? current.filter((user) => user.name !== name)
-      : [...current, { key: name.trim().toLowerCase(), name, blockedAt: new Date().toISOString() }]),
+    toggleBlockUser: (name, targetUserId) => {
+      const blockingSelf = targetUserId ? targetUserId === user?.id : name.trim().toLowerCase() === profile.name.trim().toLowerCase();
+      if (blockingSelf) return;
+      const key = targetUserId ?? name.trim().toLowerCase();
+      setBlockedUsers((current) => current.some((blocked) => blocked.key === key)
+        ? current.filter((blocked) => blocked.key !== key)
+        : [...current, { key, userId: targetUserId, name, blockedAt: new Date().toISOString() }]);
+    },
     exportUserData: async () => {
       if (supabase) {
         const { data, error } = await supabase.functions.invoke('export-account');
@@ -407,6 +427,7 @@ export function EventProvider({ children }: PropsWithChildren) {
       if (validationError) return validationError;
       const message: ChatMessage = {
         id: Crypto.randomUUID(),
+        authorId: user?.id,
         author: profile.name,
         initials: profile.initials,
         text,
@@ -503,7 +524,9 @@ export function EventProvider({ children }: PropsWithChildren) {
         timeMode: input.timeMode,
         timeLabel: formatTimeLabel(input.startTime, input.endTime, input.timeMode),
         location: input.location || '場所未設定',
-        address: input.location || '場所未設定',
+        address: input.address || input.location || '場所未設定',
+        latitude: input.latitude,
+        longitude: input.longitude,
         description: input.description || 'イベントの説明はまだありません。',
         coverColor: '#E2E9D5',
         accentColor: '#52683F',

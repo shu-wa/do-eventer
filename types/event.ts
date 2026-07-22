@@ -65,6 +65,7 @@ export type CollectionItem = {
 
 export type ChatMessage = {
   id: string;
+  authorId?: string;
   author: string;
   initials: string;
   text: string;
@@ -111,6 +112,7 @@ export type SafetyReport = {
   eventId?: string;
   messageId?: string;
   targetUserName?: string;
+  targetUserId?: string;
   reason: SafetyReportReason;
   details?: string;
   createdAt: string;
@@ -119,6 +121,7 @@ export type SafetyReport = {
 
 export type BlockedUser = {
   key: string;
+  userId?: string;
   name: string;
   blockedAt: string;
 };
@@ -186,6 +189,9 @@ export type NewEventInput = {
   endTime?: string;
   timeMode: EventTimeMode;
   location: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
   description: string;
   initialFee: number;
 };

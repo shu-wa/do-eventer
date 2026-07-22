@@ -23,7 +23,7 @@ export default function ProfileEditScreen() {
     router.back();
   };
 
-  return <SafeAreaView style={styles.safe} edges={['bottom']}><KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+  return <SafeAreaView style={styles.safe} edges={['bottom']}><KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}><ScrollView contentContainerStyle={styles.content} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled" keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}>
     <View style={styles.preview}><View style={[styles.avatar, { backgroundColor: avatarColor }]}><Text style={styles.avatarText}>{name.trim().slice(0, 2) || 'ME'}</Text></View><Text style={styles.previewText}>イベント内で表示されるプロフィール</Text></View>
     <FormField label="表示名" icon="person-outline" value={name} onChangeText={setName} placeholder="例：佐藤 美咲" autoFocus />
     <FormField label="表示ID" icon="at-outline" value={handle} onChangeText={setHandle} placeholder="misaki" autoCapitalize="none" />

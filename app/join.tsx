@@ -25,7 +25,7 @@ export default function JoinScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
-      <KeyboardAvoidingView style={styles.content} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={styles.content} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.illustration}>
           <View style={styles.ring}><View style={styles.ticket}><Ionicons name="ticket" size={37} color={palette.surface} /></View></View>
         </View>

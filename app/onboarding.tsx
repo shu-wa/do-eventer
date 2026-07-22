@@ -45,9 +45,9 @@ export default function OnboardingScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.progress}>{[0, 1, 2].map((item) => <View key={item} style={[styles.progressBar, item <= step && styles.progressActive]} />)}</View>
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={styles.content} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled" keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'} showsVerticalScrollIndicator={false}>
           {step === 0 && <Welcome onNext={() => setStep(1)} />}
           {step === 1 && <>
             <View style={styles.stepIcon}><Ionicons name="person-add-outline" size={28} color={palette.primary} /></View><Text style={styles.eyebrow}>YOUR ACCOUNT</Text><Text style={styles.title}>最初の登録</Text><Text style={styles.lead}>イベント内で使う表示名と、本人確認に使う情報を登録します。</Text>

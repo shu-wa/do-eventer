@@ -1,14 +1,16 @@
 import { FormField } from '@/components/form-field';
 import { KeyboardDismissBar } from '@/components/keyboard-dismiss-bar';
+import { LocationMap } from '@/components/location-map';
 import { formatJapaneseDateRange, NativeDateRangePicker, toDateString } from '@/components/native-date-picker';
 import { TimeRangePicker, formatTimeLabel } from '@/components/time-range-picker';
 import { palette } from '@/constants/theme';
 import { useEvents } from '@/context/event-context';
 import { EventTimeMode } from '@/types/event';
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function CreateEventScreen() {
@@ -21,6 +23,13 @@ export default function CreateEventScreen() {
   const [endTime, setEndTime] = useState<string | undefined>();
   const [timeMode, setTimeMode] = useState<EventTimeMode>('start');
   const [location, setLocation] = useState('');
+  const [address, setAddress] = useState('');
+  const [latitude, setLatitude] = useState(35.6812);
+  const [longitude, setLongitude] = useState(139.7671);
+  const [hasSelectedCoordinates, setHasSelectedCoordinates] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
+  const [locationQuery, setLocationQuery] = useState('');
+  const [locationLoading, setLocationLoading] = useState(false);
   const [description, setDescription] = useState('');
   const [initialFee, setInitialFee] = useState('');
 
@@ -33,15 +42,59 @@ export default function CreateEventScreen() {
       Alert.alert('終了時刻を確認してください', '同じ日の場合、終了時刻は開始時刻より後にしてください。');
       return;
     }
-    const event = addEvent({ title: title.trim(), startDate, endDate, startTime, endTime, timeMode, location, description, initialFee: Number(initialFee) || 0 });
+    const event = addEvent({ title: title.trim(), startDate, endDate, startTime, endTime, timeMode, location, address, latitude: hasSelectedCoordinates ? latitude : undefined, longitude: hasSelectedCoordinates ? longitude : undefined, description, initialFee: Number(initialFee) || 0 });
     router.dismiss();
     setTimeout(() => router.push(`/event/${event.id}`), 0);
   };
 
+  const addressLabel = (value?: Location.LocationGeocodedAddress) => value
+    ? [value.region, value.city, value.district, value.street, value.streetNumber].filter((part, index, values) => part && values.indexOf(part) === index).join('')
+    : '';
+
+  const selectLocation = async (nextLatitude: number, nextLongitude: number) => {
+    setLatitude(nextLatitude);
+    setLongitude(nextLongitude);
+    setHasSelectedCoordinates(true);
+    try {
+      const result = await Location.reverseGeocodeAsync({ latitude: nextLatitude, longitude: nextLongitude });
+      const nextAddress = addressLabel(result[0]);
+      const nextName = result[0]?.name || nextAddress;
+      if (nextAddress) { setAddress(nextAddress); setLocationQuery(nextAddress); }
+      if (nextName) setLocation(nextName);
+    } catch { /* 地図上の座標はそのまま利用できる */ }
+  };
+
+  const searchLocation = async () => {
+    const query = locationQuery.trim() || location.trim();
+    if (!query) return Alert.alert('検索する場所を入力してください');
+    Keyboard.dismiss();
+    setLocationLoading(true);
+    try {
+      const result = await Location.geocodeAsync(query);
+      if (!result[0]) return Alert.alert('場所が見つかりません', '施設名や住所を変えて検索してください。');
+      setLocation(query);
+      setAddress(query);
+      await selectLocation(result[0].latitude, result[0].longitude);
+    } catch {
+      Alert.alert('場所を検索できませんでした', '通信状態を確認するか、地図上で場所を選択してください。');
+    } finally { setLocationLoading(false); }
+  };
+
+  const useCurrentLocation = async () => {
+    Keyboard.dismiss();
+    setLocationLoading(true);
+    try {
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (!permission.granted) return Alert.alert('位置情報の許可が必要です', '場所は検索または地図タップでも設定できます。');
+      const current = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      await selectLocation(current.coords.latitude, current.coords.longitude);
+    } catch { Alert.alert('現在地を取得できませんでした'); } finally { setLocationLoading(false); }
+  };
+
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'} onScrollBeginDrag={Keyboard.dismiss} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView contentContainerStyle={styles.content} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled" keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'} onScrollBeginDrag={Keyboard.dismiss} showsVerticalScrollIndicator={false}>
           <View style={styles.intro}>
             <View style={styles.introIcon}><Ionicons name="sparkles" size={22} color={palette.accent} /></View>
             <View style={styles.introCopy}><Text style={styles.introTitle}>まずは基本情報から</Text><Text style={styles.introText}>あとからいつでも編集できます</Text></View>
@@ -53,7 +106,14 @@ export default function CreateEventScreen() {
           <View style={styles.sectionHeader}><View><Text style={styles.sectionTitle}>開催時間</Text><Text style={styles.sectionHint}>開始時刻のみでも登録できます</Text></View><Text style={styles.selection}>{formatTimeLabel(startTime, endTime, timeMode)}</Text></View>
           <TimeRangePicker startTime={startTime} endTime={endTime} timeMode={timeMode} onChange={(value) => { setStartTime(value.startTime); setEndTime(value.endTime); setTimeMode(value.timeMode); }} />
           <View style={styles.fieldGap} />
-          <FormField label="場所" icon="location-outline" placeholder="会場名、住所、集合場所など" value={location} onChangeText={setLocation} />
+          <FormField label="場所" icon="location-outline" placeholder="会場名、住所、集合場所など" value={location} onChangeText={(value) => { setLocation(value); if (!mapOpen) setLocationQuery(value); }} />
+          <TouchableOpacity style={styles.mapToggle} onPress={() => { setMapOpen((current) => !current); setLocationQuery((current) => current || location); }}><View style={styles.mapToggleIcon}><Ionicons name="map-outline" size={19} color={palette.primary} /></View><View style={styles.mapToggleCopy}><Text style={styles.mapToggleTitle}>{mapOpen ? '地図を閉じる' : '地図から場所を設定'}</Text><Text style={styles.mapToggleText}>施設名・住所検索、現在地、地図タップに対応</Text></View><Ionicons name={mapOpen ? 'chevron-up' : 'chevron-down'} size={18} color={palette.muted} /></TouchableOpacity>
+          {mapOpen ? <View style={styles.mapPanel}>
+            <View style={styles.mapSearch}><Ionicons name="search" size={18} color={palette.muted} /><TextInput style={styles.mapSearchInput} value={locationQuery} onChangeText={setLocationQuery} placeholder="施設名・駅名・住所で検索" placeholderTextColor="#9AA39E" returnKeyType="search" onSubmitEditing={searchLocation} /><TouchableOpacity style={styles.mapSearchButton} onPress={searchLocation}>{locationLoading ? <ActivityIndicator size="small" color={palette.surface} /> : <Text style={styles.mapSearchButtonText}>検索</Text>}</TouchableOpacity></View>
+            <TouchableOpacity style={styles.currentLocation} onPress={useCurrentLocation}><Ionicons name="navigate" size={16} color={palette.primary} /><Text style={styles.currentLocationText}>現在地へ移動</Text></TouchableOpacity>
+            <View style={styles.map}><LocationMap latitude={latitude} longitude={longitude} onSelect={selectLocation} /></View>
+            <View style={styles.selectedPlace}><Ionicons name="location" size={18} color={palette.accent} /><View style={styles.selectedCopy}><Text style={styles.selectedName}>{hasSelectedCoordinates ? location || '設定した場所' : '検索・現在地・地図タップで場所を選択'}</Text><Text style={styles.selectedAddress}>{hasSelectedCoordinates ? address || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}` : '初期表示：東京駅周辺'}</Text></View></View>
+          </View> : null}
           <FormField label="イベントの説明" hint="任意" icon="document-text-outline" placeholder="持ち物や連絡事項を書きましょう" value={description} onChangeText={setDescription} multiline />
           <FormField label="最初の参加費" hint="他の集金は作成後に追加可能" icon="wallet-outline" placeholder="0" value={initialFee} onChangeText={setInitialFee} keyboardType="number-pad" returnKeyType="done" onSubmitEditing={Keyboard.dismiss} blurOnSubmit />
 
@@ -85,6 +145,7 @@ const styles = StyleSheet.create({
   sectionHint: { color: palette.muted, fontSize: 9, marginTop: 3 },
   selection: { maxWidth: '48%', color: palette.primary, fontSize: 10, fontWeight: '800', textAlign: 'right' },
   fieldGap: { height: 20 },
+  mapToggle: { minHeight: 62, borderRadius: 18, backgroundColor: palette.primarySoft, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', marginTop: -6, marginBottom: 18 }, mapToggleIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: palette.surface, alignItems: 'center', justifyContent: 'center' }, mapToggleCopy: { flex: 1, marginHorizontal: 10 }, mapToggleTitle: { color: palette.primary, fontSize: 12, fontWeight: '900' }, mapToggleText: { color: palette.muted, fontSize: 8, marginTop: 3 }, mapPanel: { borderRadius: 20, backgroundColor: palette.surface, overflow: 'hidden', marginTop: -10, marginBottom: 18, borderWidth: 1, borderColor: palette.line }, mapSearch: { minHeight: 52, flexDirection: 'row', alignItems: 'center', paddingLeft: 12, backgroundColor: palette.canvas, margin: 11, marginBottom: 0, borderRadius: 15 }, mapSearchInput: { flex: 1, color: palette.ink, fontSize: 12, paddingHorizontal: 9 }, mapSearchButton: { width: 58, height: 42, marginRight: 4, borderRadius: 12, backgroundColor: palette.primary, alignItems: 'center', justifyContent: 'center' }, mapSearchButtonText: { color: palette.surface, fontSize: 11, fontWeight: '900' }, currentLocation: { flexDirection: 'row', alignSelf: 'flex-end', alignItems: 'center', paddingHorizontal: 13, paddingVertical: 10 }, currentLocationText: { color: palette.primary, fontSize: 10, fontWeight: '800', marginLeft: 5 }, map: { height: 260, overflow: 'hidden' }, selectedPlace: { minHeight: 62, padding: 12, flexDirection: 'row', alignItems: 'center' }, selectedCopy: { flex: 1, marginLeft: 9 }, selectedName: { color: palette.ink, fontSize: 12, fontWeight: '900' }, selectedAddress: { color: palette.muted, fontSize: 9, marginTop: 3 },
   nextInfo: { borderRadius: 19, borderWidth: 1, borderStyle: 'dashed', borderColor: '#B8C3BC', padding: 15 },
   nextTitle: { color: palette.muted, fontSize: 11, fontWeight: '700', marginBottom: 10 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },

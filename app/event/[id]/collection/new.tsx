@@ -54,8 +54,8 @@ export default function NewCollectionScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'} onScrollBeginDrag={Keyboard.dismiss} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView contentContainerStyle={styles.content} automaticallyAdjustKeyboardInsets keyboardShouldPersistTaps="handled" keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'} onScrollBeginDrag={Keyboard.dismiss} showsVerticalScrollIndicator={false}>
           <View style={styles.intro}><View style={styles.introIcon}><Ionicons name="receipt" size={22} color={palette.primary} /></View><View style={styles.introCopy}><Text style={styles.introTitle}>費用ごとに分けて管理</Text><Text style={styles.introText}>参加費、食事代、立替えなどを何件でも追加できます</Text></View></View>
 
           <FieldLabel label="集金名" required />

@@ -71,7 +71,7 @@ export default function EditLocationScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.searchArea}>
           <View style={styles.searchBox}><Ionicons name="search" size={19} color={palette.muted} /><TextInput style={styles.searchInput} value={query} onChangeText={setQuery} placeholder="施設名・駅名・住所で検索" placeholderTextColor="#9AA39E" returnKeyType="search" onSubmitEditing={search} /><TouchableOpacity style={styles.searchButton} onPress={search}>{loading ? <ActivityIndicator size="small" color={palette.surface} /> : <Text style={styles.searchButtonText}>検索</Text>}</TouchableOpacity></View>
           <TouchableOpacity style={styles.current} onPress={useCurrentLocation}><Ionicons name="navigate" size={16} color={palette.primary} /><Text style={styles.currentText}>現在地へ移動</Text></TouchableOpacity>
