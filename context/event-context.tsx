@@ -3,6 +3,7 @@ import { validateUserContent } from '@/constants/safety';
 import { syncOnboardingToCloud, syncProfileToCloud } from '@/lib/cloud-profile';
 import { supabase } from '@/lib/supabase';
 import { createCloudEvent, createCloudInvite, fetchCloudEvents, joinCloudEvent, reviewCloudJoinRequest, syncCloudAttendance, syncCloudCollection, syncCloudDateTime, syncCloudLocation, syncCloudMessage, syncCloudPayment, syncCloudSchedule } from '@/lib/cloud-events';
+import { requestNotificationPermission, syncLocalReminders } from '@/lib/notifications';
 import { useAuth } from '@/context/auth-context';
 import {
   AppSettings,
@@ -36,7 +37,7 @@ const defaultProfile: UserProfile = {
 };
 
 const defaultSettings: AppSettings = {
-  notificationsEnabled: true,
+  notificationsEnabled: false,
   onboardingCompleted: false,
   analyticsEnabled: false,
   crashReportsEnabled: false,
@@ -63,7 +64,7 @@ type EventContextValue = {
   toggleCollectionPayment: (eventId: string, collectionId: string, participantId: string) => void;
   updateProfile: (profile: UserProfile) => void;
   completeOnboarding: (input: OnboardingInput) => void;
-  setNotificationsEnabled: (enabled: boolean) => void;
+  setNotificationsEnabled: (enabled: boolean) => Promise<string | null>;
   setAnalyticsEnabled: (enabled: boolean) => void;
   setCrashReportsEnabled: (enabled: boolean) => void;
   submitSafetyReport: (report: Omit<SafetyReport, 'id' | 'createdAt' | 'status'>) => void;
@@ -145,6 +146,11 @@ export function EventProvider({ children }: PropsWithChildren) {
     if (!isHydrated) return;
     AsyncStorage.setItem(storageKey, JSON.stringify({ events, profile, settings, reports, consentHistory, blockedUsers })).catch(() => undefined);
   }, [blockedUsers, consentHistory, events, isHydrated, profile, reports, settings, storageKey]);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+    void syncLocalReminders(events, settings.notificationsEnabled).catch(() => undefined);
+  }, [events, isHydrated, settings.notificationsEnabled]);
 
   useEffect(() => {
     if (!isConfigured || !isHydrated || !user) return;
@@ -253,7 +259,19 @@ export function EventProvider({ children }: PropsWithChildren) {
       ]);
       void syncOnboardingToCloud(input, nextProfile).catch(() => undefined);
     },
-    setNotificationsEnabled: (enabled) => setSettings((current) => ({ ...current, notificationsEnabled: enabled })),
+    setNotificationsEnabled: async (enabled) => {
+      if (enabled) {
+        try {
+          const granted = await requestNotificationPermission();
+          if (!granted) return '端末の設定でDo Eventerの通知を許可してください。';
+        } catch {
+          return '通知を有効にできませんでした。端末の設定を確認してください。';
+        }
+      }
+      setSettings((current) => ({ ...current, notificationsEnabled: enabled }));
+      if (!enabled) void syncLocalReminders(events, false).catch(() => undefined);
+      return null;
+    },
     setAnalyticsEnabled: (enabled) => {
       const recordedAt = new Date().toISOString();
       setSettings((current) => ({ ...current, analyticsEnabled: enabled }));

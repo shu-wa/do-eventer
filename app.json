@@ -2,7 +2,7 @@
   "expo": {
     "name": "Do Eventer",
     "slug": "do-eventer",
-    "version": "0.5.0",
+    "version": "0.6.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "do-eventer",
@@ -59,6 +59,13 @@
         "expo-location",
         {
           "locationWhenInUsePermission": "イベント場所を現在地から探すために位置情報を使用します。"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#285943",
+          "defaultChannel": "event-reminders"
         }
       ]
     ],

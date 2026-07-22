@@ -1,6 +1,7 @@
 import { EventProvider, useEvents } from '@/context/event-context';
 import { AuthProvider, useAuth } from '@/context/auth-context';
 import { palette } from '@/constants/theme';
+import NotificationObserver from '@/components/notification-observer';
 import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { router, Stack, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -16,6 +17,7 @@ export default function RootLayout() {
     <AuthProvider>
       <EventProvider>
         <NavigationGuard />
+        <NotificationObserver />
         <ThemeProvider value={{ ...DefaultTheme, colors: { ...DefaultTheme.colors, background: palette.canvas } }}>
         <Stack screenOptions={{ headerShadowVisible: false, headerStyle: { backgroundColor: palette.canvas }, headerTintColor: palette.ink }}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

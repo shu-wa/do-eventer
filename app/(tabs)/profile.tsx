@@ -5,10 +5,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Alert, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useState } from 'react';
 
 export default function ProfileScreen() {
   const { events, profile, settings, setNotificationsEnabled, resetLocalData } = useEvents();
   const { isConfigured, user, signOut } = useAuth();
+  const [notificationUpdating, setNotificationUpdating] = useState(false);
   const hostedCount = events.filter((event) => event.host === profile.name).length;
   const connections = new Set(events.flatMap((event) => event.participants.map((person) => person.name)).filter((name) => name !== profile.name)).size;
 
@@ -16,6 +18,13 @@ export default function ProfileScreen() {
     { text: 'キャンセル', style: 'cancel' },
     { text: '初期化する', style: 'destructive', onPress: resetLocalData },
   ]);
+
+  const changeNotifications = async (enabled: boolean) => {
+    setNotificationUpdating(true);
+    const error = await setNotificationsEnabled(enabled);
+    setNotificationUpdating(false);
+    if (error) Alert.alert('通知を有効にできません', error);
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -39,7 +48,7 @@ export default function ProfileScreen() {
         <Text style={styles.sectionTitle}>設定</Text>
         <View style={styles.settings}>
           <View style={styles.row}>
-            <View style={styles.rowIcon}><Ionicons name="notifications-outline" size={20} color={palette.primary} /></View><View style={styles.rowCopy}><Text style={styles.rowLabel}>新着通知</Text><Text style={styles.rowSub}>予定変更やチャットを通知</Text></View><Switch value={settings.notificationsEnabled} onValueChange={setNotificationsEnabled} trackColor={{ false: '#D5D9D6', true: '#8FB5A0' }} thumbColor={palette.surface} />
+            <View style={styles.rowIcon}><Ionicons name="notifications-outline" size={20} color={palette.primary} /></View><View style={styles.rowCopy}><Text style={styles.rowLabel}>端末リマインダー</Text><Text style={styles.rowSub}>イベント開始と集金期限を事前に通知</Text></View><Switch value={settings.notificationsEnabled} onValueChange={changeNotifications} disabled={notificationUpdating} trackColor={{ false: '#D5D9D6', true: '#8FB5A0' }} thumbColor={palette.surface} />
           </View>
           <TouchableOpacity style={styles.row} onPress={() => router.push('/profile-edit')}><View style={styles.rowIcon}><Ionicons name="person-outline" size={20} color={palette.primary} /></View><View style={styles.rowCopy}><Text style={styles.rowLabel}>プロフィールを編集</Text><Text style={styles.rowSub}>名前、表示ID、地域</Text></View><Ionicons name="chevron-forward" size={18} color={palette.muted} /></TouchableOpacity>
           <TouchableOpacity style={styles.row} onPress={() => router.push('/privacy-center')}><View style={styles.rowIcon}><Ionicons name="lock-closed-outline" size={20} color={palette.primary} /></View><View style={styles.rowCopy}><Text style={styles.rowLabel}>プライバシーセンター</Text><Text style={styles.rowSub}>データ利用、書き出し、アカウント削除</Text></View><Ionicons name="chevron-forward" size={18} color={palette.muted} /></TouchableOpacity>
@@ -49,7 +58,7 @@ export default function ProfileScreen() {
           {isConfigured && <TouchableOpacity style={styles.row} onPress={() => Alert.alert('ログアウトしますか？', undefined, [{ text: 'キャンセル', style: 'cancel' }, { text: 'ログアウト', style: 'destructive', onPress: signOut }])}><View style={styles.rowIcon}><Ionicons name="log-out-outline" size={20} color={palette.primary} /></View><View style={styles.rowCopy}><Text style={styles.rowLabel}>ログアウト</Text><Text style={styles.rowSub}>この端末のセッションを終了</Text></View><Ionicons name="chevron-forward" size={18} color={palette.muted} /></TouchableOpacity>}
         </View>
         <TouchableOpacity style={styles.resetButton} onPress={confirmReset}><Ionicons name="refresh-outline" size={17} color={palette.danger} /><Text style={styles.resetText}>試作データを初期化</Text></TouchableOpacity>
-        <Text style={styles.version}>Do Eventer member management · Version 0.5.0</Text>
+        <Text style={styles.version}>Do Eventer reminders · Version 0.6.0</Text>
       </ScrollView>
     </SafeAreaView>
   );
