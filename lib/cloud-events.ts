@@ -217,3 +217,9 @@ export async function syncCloudMemberRole(eventId: string, userId: string, role:
   });
   if (error) throw error;
 }
+
+export async function confirmCloudDateCandidate(candidateId: string) {
+  if (!supabase || !isCloudId(candidateId)) return;
+  const { error } = await supabase.rpc('confirm_event_date_candidate', { target_candidate_id: candidateId });
+  if (error) throw error;
+}

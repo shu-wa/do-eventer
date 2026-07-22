@@ -2,7 +2,7 @@ import { sampleEvents } from '@/data/events';
 import { validateUserContent } from '@/constants/safety';
 import { syncOnboardingToCloud, syncProfileToCloud } from '@/lib/cloud-profile';
 import { supabase } from '@/lib/supabase';
-import { createCloudEvent, createCloudInvite, fetchCloudEvents, joinCloudEvent, reviewCloudJoinRequest, syncCloudAttendance, syncCloudAvailabilityVote, syncCloudCollection, syncCloudDateCandidate, syncCloudDateTime, syncCloudLocation, syncCloudMemberRole, syncCloudMessage, syncCloudPayment, syncCloudSchedule } from '@/lib/cloud-events';
+import { confirmCloudDateCandidate, createCloudEvent, createCloudInvite, fetchCloudEvents, joinCloudEvent, reviewCloudJoinRequest, syncCloudAttendance, syncCloudAvailabilityVote, syncCloudCollection, syncCloudDateCandidate, syncCloudDateTime, syncCloudLocation, syncCloudMemberRole, syncCloudMessage, syncCloudPayment, syncCloudSchedule } from '@/lib/cloud-events';
 import { requestNotificationPermission, syncLocalReminders } from '@/lib/notifications';
 import { useAuth } from '@/context/auth-context';
 import {
@@ -83,6 +83,7 @@ type EventContextValue = {
   addDateCandidate: (eventId: string, input: NewDateCandidateInput) => Promise<string | null>;
   setAvailabilityVote: (eventId: string, candidateId: string, choice: AvailabilityChoice) => Promise<string | null>;
   setMemberRole: (eventId: string, userId: string, role: 'cohost' | 'member') => Promise<string | null>;
+  confirmDateCandidate: (eventId: string, candidateId: string) => Promise<string | null>;
 };
 
 const EventContext = createContext<EventContextValue | null>(null);
@@ -169,6 +170,7 @@ export function EventProvider({ children }: PropsWithChildren) {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'event_members' }, refresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'date_candidates' }, refresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'date_candidate_votes' }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, refresh)
       .subscribe();
     return () => { active = false; if (client && channel) void client.removeChannel(channel); };
   }, [isConfigured, isHydrated, user]);
@@ -288,6 +290,26 @@ export function EventProvider({ children }: PropsWithChildren) {
         return null;
       } catch {
         return '権限を変更できませんでした。主催者権限や通信状態を確認してください。';
+      }
+    },
+    confirmDateCandidate: async (eventId, candidateId) => {
+      const candidate = events.find((event) => event.id === eventId)?.dateCandidates?.find((item) => item.id === candidateId);
+      if (!candidate) return '候補日が見つかりません。';
+      try {
+        await confirmCloudDateCandidate(candidateId);
+        setEvents((current) => current.map((event) => event.id !== eventId ? event : {
+          ...event,
+          startDate: candidate.date,
+          endDate: candidate.date,
+          dateLabel: formatDateLabel(candidate.date, candidate.date),
+          startTime: candidate.startTime,
+          endTime: undefined,
+          timeMode: 'start',
+          timeLabel: formatTimeLabel(candidate.startTime, undefined, 'start'),
+        }));
+        return null;
+      } catch {
+        return '日程を確定できませんでした。管理権限や通信状態を確認してください。';
       }
     },
     updateProfile: (nextProfile) => {
