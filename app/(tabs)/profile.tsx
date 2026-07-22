@@ -11,12 +11,12 @@ export default function ProfileScreen() {
   const { events, profile, settings, setNotificationsEnabled, resetLocalData } = useEvents();
   const { isConfigured, user, signOut } = useAuth();
   const [notificationUpdating, setNotificationUpdating] = useState(false);
-  const hostedCount = events.filter((event) => event.host === profile.name).length;
-  const connections = new Set(events.flatMap((event) => event.participants.map((person) => person.name)).filter((name) => name !== profile.name)).size;
+  const hostedCount = events.filter((event) => event.participants.some((person) => person.role === '主催者' && (person.id === user?.id || (!user && person.id === 'me')))).length;
+  const connections = new Set(events.flatMap((event) => event.participants.filter((person) => person.id !== user?.id && person.id !== 'me').map((person) => person.id))).size;
 
-  const confirmReset = () => Alert.alert('イベントデータを初期化しますか？', '作成したイベント、チャット、支払状態がサンプル状態へ戻ります。登録情報と同意履歴は残ります。', [
+  const confirmReset = () => Alert.alert('イベントデータを削除しますか？', 'この端末に保存されたイベント、チャット、支払状態を削除します。登録情報と同意履歴は残ります。', [
     { text: 'キャンセル', style: 'cancel' },
-    { text: '初期化する', style: 'destructive', onPress: resetLocalData },
+    { text: '削除する', style: 'destructive', onPress: resetLocalData },
   ]);
 
   const changeNotifications = async (enabled: boolean) => {
@@ -32,7 +32,7 @@ export default function ProfileScreen() {
         <Text style={styles.eyebrow}>MY PAGE</Text><Text style={styles.title}>マイページ</Text>
         <View style={styles.profileCard}>
           <View style={[styles.avatar, { backgroundColor: profile.avatarColor }]}><Text style={styles.avatarText}>{profile.initials}</Text></View>
-          <View style={styles.profileCopy}><Text style={styles.name}>{profile.name}</Text><Text style={styles.handle}>{profile.handle} · {profile.city}</Text></View>
+          <View style={styles.profileCopy}><Text style={styles.name}>{profile.name}</Text><Text style={styles.handle}>{[profile.handle, profile.city].filter(Boolean).join(' · ')}</Text></View>
           <TouchableOpacity style={styles.edit} onPress={() => router.push('/profile-edit')}><Ionicons name="pencil" size={16} color={palette.primary} /></TouchableOpacity>
         </View>
         <View style={styles.stats}>

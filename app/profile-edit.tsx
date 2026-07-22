@@ -27,7 +27,7 @@ export default function ProfileEditScreen() {
     <View style={styles.preview}><View style={[styles.avatar, { backgroundColor: avatarColor }]}><Text style={styles.avatarText}>{name.trim().slice(0, 2) || 'ME'}</Text></View><Text style={styles.previewText}>イベント内で表示されるプロフィール</Text></View>
     <FormField label="表示名" icon="person-outline" value={name} onChangeText={setName} placeholder="例：佐藤 美咲" autoFocus />
     <FormField label="表示ID" icon="at-outline" value={handle} onChangeText={setHandle} placeholder="misaki" autoCapitalize="none" />
-    <FormField label="地域" icon="location-outline" value={city} onChangeText={setCity} placeholder="Tokyo" />
+    <FormField label="地域" icon="location-outline" value={city} onChangeText={setCity} placeholder="例：東京都" />
     <Text style={styles.label}>プロフィールカラー</Text><View style={styles.colors}>{avatarColors.map((color) => <TouchableOpacity key={color} style={[styles.color, { backgroundColor: color }, avatarColor === color && styles.colorActive]} onPress={() => setAvatarColor(color)}>{avatarColor === color && <Ionicons name="checkmark" size={19} color={palette.surface} />}</TouchableOpacity>)}</View>
   </ScrollView><View style={styles.bottom}><TouchableOpacity style={styles.save} onPress={save}><Text style={styles.saveText}>変更を保存</Text></TouchableOpacity></View></KeyboardAvoidingView></SafeAreaView>;
 }

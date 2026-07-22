@@ -1,5 +1,5 @@
-import { sampleEvents } from '@/data/events';
 import { validateUserContent } from '@/constants/safety';
+import { legalConfig } from '@/constants/legal';
 import { syncOnboardingToCloud, syncProfileToCloud } from '@/lib/cloud-profile';
 import { supabase } from '@/lib/supabase';
 import { confirmCloudDateCandidate, createCloudEvent, createCloudInvite, fetchCloudEvents, joinCloudEvent, previewCloudEventInvite, reviewCloudJoinRequest, syncCloudAttendance, syncCloudAvailabilityVote, syncCloudChatRead, syncCloudCollection, syncCloudDateCandidate, syncCloudDateTime, syncCloudLocation, syncCloudMemberRole, syncCloudMessage, syncCloudPayment, syncCloudSchedule } from '@/lib/cloud-events';
@@ -30,11 +30,12 @@ import * as Crypto from 'expo-crypto';
 import React, { createContext, PropsWithChildren, useContext, useEffect, useMemo, useState } from 'react';
 
 const STORAGE_KEY = '@do-eventer/app-data-v2';
+const LEGACY_SAMPLE_EVENT_IDS = new Set(['hakone-retreat', 'summer-bbq', 'design-meetup']);
 
 const defaultProfile: UserProfile = {
   name: 'Test',
   handle: '@tamasyu0202',
-  city: 'Tokyo',
+  city: '',
   initials: 'TE',
   avatarColor: '#285943',
 };
@@ -46,9 +47,9 @@ const defaultSettings: AppSettings = {
   crashReportsEnabled: false,
 };
 
-const TERMS_VERSION = '2026-07-20';
-const PRIVACY_VERSION = '2026-07-20';
-const COMMUNITY_VERSION = '2026-07-20';
+const TERMS_VERSION = legalConfig.termsVersion;
+const PRIVACY_VERSION = legalConfig.privacyVersion;
+const COMMUNITY_VERSION = legalConfig.communityVersion;
 
 type EventContextValue = {
   events: EventItem[];
@@ -123,7 +124,7 @@ const normalizeEvents = (events: EventItem[]): EventItem[] => events.map((event)
 export function EventProvider({ children }: PropsWithChildren) {
   const { user, isConfigured } = useAuth();
   const storageKey = `${STORAGE_KEY}/${user?.id ?? 'local'}`;
-  const [events, setEvents] = useState<EventItem[]>(sampleEvents);
+  const [events, setEvents] = useState<EventItem[]>([]);
   const [profile, setProfile] = useState<UserProfile>(defaultProfile);
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const [reports, setReports] = useState<SafetyReport[]>([]);
@@ -134,7 +135,7 @@ export function EventProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     let active = true;
     setIsHydrated(false);
-    setEvents(sampleEvents);
+    setEvents([]);
     setProfile(defaultProfile);
     setSettings(defaultSettings);
     setReports([]);
@@ -144,8 +145,11 @@ export function EventProvider({ children }: PropsWithChildren) {
       .then((stored) => {
         if (!active || !stored) return;
         const parsed = JSON.parse(stored) as { events?: EventItem[]; profile?: UserProfile; settings?: AppSettings; reports?: SafetyReport[]; consentHistory?: ConsentRecord[]; blockedUsers?: BlockedUser[] };
-        if (parsed.events) setEvents(normalizeEvents(parsed.events));
-        if (parsed.profile) setProfile(parsed.profile);
+        if (parsed.events) setEvents(normalizeEvents(parsed.events).filter((event) => !LEGACY_SAMPLE_EVENT_IDS.has(event.id)));
+        if (parsed.profile) {
+          const legacyDefaultCity = parsed.profile.name === 'Test' && parsed.profile.handle === '@tamasyu0202' && parsed.profile.city === 'Tokyo';
+          setProfile(legacyDefaultCity ? { ...parsed.profile, city: '' } : parsed.profile);
+        }
         if (parsed.settings) setSettings({ ...defaultSettings, ...parsed.settings });
         if (parsed.reports) setReports(parsed.reports);
         if (parsed.consentHistory) setConsentHistory(parsed.consentHistory);
@@ -467,7 +471,7 @@ export function EventProvider({ children }: PropsWithChildren) {
         await supabase.auth.signOut({ scope: 'local' });
       }
       await AsyncStorage.removeItem(storageKey);
-      setEvents(sampleEvents);
+      setEvents([]);
       setProfile(defaultProfile);
       setSettings(defaultSettings);
       setReports([]);
@@ -476,7 +480,7 @@ export function EventProvider({ children }: PropsWithChildren) {
       return null;
     },
     resetLocalData: () => {
-      setEvents(sampleEvents);
+      setEvents([]);
     },
     addMessage: (eventId, text) => {
       const validationError = validateUserContent(text);
@@ -569,8 +573,8 @@ export function EventProvider({ children }: PropsWithChildren) {
       const event: EventItem = {
         id,
         title: input.title,
-        category: 'NEW EVENT',
-        tagline: input.description || '新しいイベントが作成されました',
+        category: 'EVENT',
+        tagline: input.description || '',
         host: profile.name,
         startDate: input.startDate,
         endDate: input.endDate,
@@ -583,12 +587,12 @@ export function EventProvider({ children }: PropsWithChildren) {
         address: input.address || input.location || '場所未設定',
         latitude: input.latitude,
         longitude: input.longitude,
-        description: input.description || 'イベントの説明はまだありません。',
+        description: input.description || '',
         coverColor: '#E2E9D5',
         accentColor: '#52683F',
         status: '予定',
         inviteCode: supabase ? '' : Math.random().toString(36).slice(2, 8).toUpperCase(),
-        capacity: 20,
+        capacity: 10000,
         participants: [
           { id: 'me', name: profile.name, initials: profile.initials, role: '主催者', avatarColor: profile.avatarColor, attendance: '参加' },
         ],

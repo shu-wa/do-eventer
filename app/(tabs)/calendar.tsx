@@ -1,17 +1,21 @@
 import { EventCard } from '@/components/event-card';
 import { palette } from '@/constants/theme';
 import { useEvents } from '@/context/event-context';
+import { getLocalDateKey } from '@/lib/event-display';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const todayKey = new Date().toISOString().slice(0, 10);
+const todayKey = getLocalDateKey(new Date());
 
 export default function CalendarScreen() {
   const { events } = useEvents();
-  const [visibleMonth, setVisibleMonth] = useState(new Date(2026, 6, 1));
+  const [visibleMonth, setVisibleMonth] = useState(() => {
+    const today = new Date();
+    return new Date(today.getFullYear(), today.getMonth(), 1);
+  });
   const year = visibleMonth.getFullYear();
   const month = visibleMonth.getMonth();
   const firstOffset = (new Date(year, month, 1).getDay() + 6) % 7;

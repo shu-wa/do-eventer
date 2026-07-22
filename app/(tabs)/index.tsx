@@ -1,22 +1,28 @@
 import { EventCard } from '@/components/event-card';
 import { palette, shadow, typography } from '@/constants/theme';
 import { useEvents } from '@/context/event-context';
+import { getLocalDateKey } from '@/lib/event-display';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
-  const { events, profile } = useEvents();
-  const nextEvent = events[0];
+  const { events, profile, getUnreadMessageCount } = useEvents();
+  const today = getLocalDateKey(new Date());
+  const upcomingEvents = [...events].filter((event) => event.endDate >= today).sort((a, b) => `${a.startDate}${a.startTime}`.localeCompare(`${b.startDate}${b.startTime}`));
+  const nextEvent = upcomingEvents[0];
+  const laterEvents = upcomingEvents.slice(1);
   const latestMessage = nextEvent?.messages[nextEvent.messages.length - 1];
+  const unreadCount = nextEvent ? getUnreadMessageCount(nextEvent.id) : 0;
+  const todayLabel = new Intl.DateTimeFormat('ja-JP', { month: 'long', day: 'numeric', weekday: 'long' }).format(new Date());
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <View>
-            <Text style={styles.eyebrow}>SUNDAY, 20 JULY</Text>
+            <Text style={styles.eyebrow}>{todayLabel}</Text>
             <Text style={styles.greeting}>こんにちは、{profile.name.split(' ')[0]}さん</Text>
           </View>
           <View style={[styles.avatar, { backgroundColor: profile.avatarColor }]}><Text style={styles.avatarText}>{profile.initials}</Text></View>
@@ -48,7 +54,7 @@ export default function HomeScreen() {
           <TouchableOpacity onPress={() => router.push('/(tabs)/calendar')}><Text style={styles.link}>すべて見る</Text></TouchableOpacity>
         </View>
 
-        {nextEvent && <EventCard event={nextEvent} featured />}
+        {nextEvent ? <EventCard event={nextEvent} featured /> : <View style={styles.empty}><Ionicons name="calendar-clear-outline" size={30} color={palette.muted} /><Text style={styles.emptyTitle}>予定されているイベントはありません</Text><TouchableOpacity onPress={() => router.push('/create')}><Text style={styles.emptyLink}>イベントを作成する</Text></TouchableOpacity></View>}
 
         {nextEvent && latestMessage && <TouchableOpacity style={styles.notice} onPress={() => router.push(`/event/${nextEvent.id}/chat`)} activeOpacity={0.8}>
           <View style={styles.noticeIcon}><Ionicons name="chatbubble-ellipses" size={20} color={palette.primary} /></View>
@@ -56,7 +62,7 @@ export default function HomeScreen() {
             <Text style={styles.noticeTitle}>{nextEvent.title}のメッセージ</Text>
             <Text style={styles.noticeText}>{latestMessage.author.split(' ')[0]}：{latestMessage.text}</Text>
           </View>
-          <View style={styles.badge}><Text style={styles.badgeText}>{nextEvent.messages.length}</Text></View>
+          {unreadCount > 0 && <View style={styles.badge}><Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text></View>}
         </TouchableOpacity>}
 
         <View style={styles.sectionHeader}>
@@ -65,7 +71,7 @@ export default function HomeScreen() {
             <Text style={styles.sectionTitle}>この先の予定</Text>
           </View>
         </View>
-        {events.slice(1).map((event) => <EventCard key={event.id} event={event} compact />)}
+        {laterEvents.map((event) => <EventCard key={event.id} event={event} compact />)}
       </ScrollView>
     </SafeAreaView>
   );
@@ -100,4 +106,7 @@ const styles = StyleSheet.create({
   noticeText: { fontSize: 12, color: palette.muted },
   badge: { width: 24, height: 24, borderRadius: 12, backgroundColor: palette.accent, alignItems: 'center', justifyContent: 'center' },
   badgeText: { color: palette.surface, fontSize: 11, fontWeight: '800' },
+  empty: { alignItems: 'center', backgroundColor: palette.surface, borderRadius: 22, padding: 28, marginBottom: 22 },
+  emptyTitle: { color: palette.ink, fontSize: 13, fontWeight: '800', marginTop: 10 },
+  emptyLink: { color: palette.primary, fontSize: 11, fontWeight: '700', marginTop: 8 },
 });

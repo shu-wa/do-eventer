@@ -1,4 +1,4 @@
-import { formatJapaneseDateRange, NativeDateRangePicker } from '@/components/native-date-picker';
+import { formatJapaneseDateRange, NativeDateRangePicker, toDateString } from '@/components/native-date-picker';
 import { TimeRangePicker, formatTimeLabel } from '@/components/time-range-picker';
 import { palette } from '@/constants/theme';
 import { useEvents } from '@/context/event-context';
@@ -13,8 +13,9 @@ export default function EditEventDateScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { findEvent, updateEventDateTime } = useEvents();
   const event = findEvent(id);
-  const [startDate, setStartDate] = useState(event?.startDate || '2026-08-01');
-  const [endDate, setEndDate] = useState(event?.endDate || event?.startDate || '2026-08-01');
+  const today = toDateString(new Date());
+  const [startDate, setStartDate] = useState(event?.startDate || today);
+  const [endDate, setEndDate] = useState(event?.endDate || event?.startDate || today);
   const [startTime, setStartTime] = useState(event?.startTime || '09:00');
   const [endTime, setEndTime] = useState<string | undefined>(event?.endTime);
   const [timeMode, setTimeMode] = useState<EventTimeMode>(event?.timeMode || 'start');

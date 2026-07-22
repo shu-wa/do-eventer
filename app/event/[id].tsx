@@ -1,5 +1,6 @@
 import { palette, shadow } from '@/constants/theme';
 import { getCollectionCategory } from '@/constants/collections';
+import { getEventDisplayStatus } from '@/lib/event-display';
 import { useEvents } from '@/context/event-context';
 import { ScheduleItem } from '@/types/event';
 import { Ionicons } from '@expo/vector-icons';
@@ -44,6 +45,7 @@ export default function EventDetailScreen() {
   const total = event.collections.reduce((sum, collection) => sum + collection.totalAmount, 0);
   const paid = event.collections.reduce((sum, collection) => sum + collection.shares.filter((share) => share.paid).reduce((shareSum, share) => shareSum + share.amount, 0), 0);
   const unreadCount = getUnreadMessageCount(event.id);
+  const displayStatus = getEventDisplayStatus(event);
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
@@ -53,9 +55,9 @@ export default function EventDetailScreen() {
           <View style={styles.heroArt}><View style={[styles.sun, { backgroundColor: event.accentColor }]} /><View style={[styles.hillBack, { borderBottomColor: `${event.accentColor}55` }]} /><View style={[styles.hill, { borderBottomColor: event.accentColor }]} /></View>
         </View>
         <View style={styles.titleBlock}>
-          <View style={styles.statusRow}><View style={[styles.statusDot, { backgroundColor: event.accentColor }]} /><Text style={[styles.statusText, { color: event.accentColor }]}>{event.status}</Text><Text style={styles.host}> · {event.host}さんが主催</Text></View>
+          <View style={styles.statusRow}><View style={[styles.statusDot, { backgroundColor: event.accentColor }]} /><Text style={[styles.statusText, { color: event.accentColor }]}>{displayStatus}</Text><Text style={styles.host}> · {event.host}さんが主催</Text></View>
           <Text style={styles.title}>{event.title}</Text>
-          <Text style={styles.tagline}>{event.tagline}</Text>
+          {event.tagline ? <Text style={styles.tagline}>{event.tagline}</Text> : null}
         </View>
 
         <View style={styles.quickActions}>
@@ -76,10 +78,10 @@ export default function EventDetailScreen() {
             <View style={styles.separator} />
             <InfoRow icon="location-outline" label="場所" value={event.location} subvalue={event.address} color={event.accentColor} onPress={() => router.push(`/event/${event.id}/edit-location`)} />
             <View style={styles.separator} />
-            <InfoRow icon="people-outline" label="参加者" value={`${event.participants.length}人が参加`} subvalue={(event.joinRequests?.length ?? 0) > 0 ? `承認待ち ${event.joinRequests!.length}人 · 定員 ${event.capacity}人` : `定員 ${event.capacity}人`} color={event.accentColor} onPress={() => router.push(`/event/${event.id}/participants`)} />
+            <InfoRow icon="people-outline" label="参加者" value={`${event.participants.length}人が参加`} subvalue={(event.joinRequests?.length ?? 0) > 0 ? `承認待ち ${event.joinRequests!.length}人` : '参加者一覧を表示'} color={event.accentColor} onPress={() => router.push(`/event/${event.id}/participants`)} />
           </View>
           <SectionTitle eyebrow="ABOUT" title="イベントについて" />
-          <View style={styles.textCard}><Text style={styles.description}>{event.description}</Text></View>
+          <View style={styles.textCard}><Text style={styles.description}>{event.description || '説明はありません'}</Text></View>
           <SectionTitle eyebrow="INVITATION" title="招待コード" />
           <TouchableOpacity style={styles.inviteCard} onPress={invite} activeOpacity={0.85}>
             <View style={styles.inviteCopy}><Text style={styles.inviteLabel}>タップして共有</Text><Text style={styles.inviteCode} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.55}>{event.inviteCode || 'タップして発行'}</Text></View>

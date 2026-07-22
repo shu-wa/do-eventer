@@ -66,7 +66,7 @@ export default function ParticipantsScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        <View style={styles.summary}><View><Text style={styles.count}>{event.participants.length}<Text style={styles.unit}> 人</Text></Text><Text style={styles.summaryText}>参加回答 {attendingCount}人 · 定員 {event.capacity}人</Text></View><View style={styles.peopleIcon}><Ionicons name="people" size={28} color={palette.surface} /></View></View>
+        <View style={styles.summary}><View><Text style={styles.count}>{event.participants.length}<Text style={styles.unit}> 人</Text></Text><Text style={styles.summaryText}>参加回答 {attendingCount}人</Text></View><View style={styles.peopleIcon}><Ionicons name="people" size={28} color={palette.surface} /></View></View>
 
         {currentParticipant ? <View style={styles.attendanceCard}>
           <View style={styles.sectionCopy}><Text style={styles.sectionTitle}>あなたの参加可否</Text><Text style={styles.sectionText}>変更すると参加者一覧へすぐ反映されます</Text></View>

@@ -51,14 +51,13 @@ export default function JoinScreen() {
             <Text style={styles.title}>招待コードで参加</Text>
             <Text style={styles.description}>コードを確認してから、イベント名と日時を見て参加を決められます。</Text>
             <View style={styles.codeWrap}>
-              <TextInput value={code} onChangeText={updateCode} placeholder="例：HAKONE26" placeholderTextColor="#A4AAA6" autoCapitalize="characters" autoCorrect={false} maxLength={64} style={styles.codeInput} selectionColor={palette.primary} returnKeyType="done" onSubmitEditing={confirmCode} />
+              <TextInput value={code} onChangeText={updateCode} placeholder="招待コードを入力" placeholderTextColor="#A4AAA6" autoCapitalize="characters" autoCorrect={false} maxLength={64} style={styles.codeInput} selectionColor={palette.primary} returnKeyType="done" onSubmitEditing={confirmCode} />
               {code.length > 0 && <TouchableOpacity onPress={() => updateCode('')} accessibilityLabel="招待コードを消去"><Ionicons name="close-circle" size={22} color={palette.muted} /></TouchableOpacity>}
             </View>
             <TouchableOpacity style={[styles.primaryButton, (!code.trim() || loading) && styles.buttonDisabled]} onPress={confirmCode} disabled={!code.trim() || loading} activeOpacity={0.85}>
               <Text style={styles.primaryText}>{loading ? '確認中…' : 'イベントを確認'}</Text><Ionicons name="arrow-forward" size={19} color={palette.surface} />
             </TouchableOpacity>
             <TouchableOpacity style={styles.scan} onPress={() => router.push('/scan')}><Ionicons name="qr-code-outline" size={18} color={palette.primary} /><Text style={styles.scanText}>QRコードを読み取る</Text></TouchableOpacity>
-            <View style={styles.tip}><Ionicons name="information-circle-outline" size={18} color={palette.muted} /><Text style={styles.tipText}>テストでは「HAKONE26」を入力すると確認できます。</Text></View>
           </> : <>
             <Text style={styles.title}>このイベントに参加しますか？</Text>
             <Text style={styles.description}>表示された内容を確認して、参加する場合だけボタンを押してください。</Text>
@@ -91,7 +90,6 @@ const styles = StyleSheet.create({
   primaryButton: { minHeight: 57, borderRadius: 18, backgroundColor: palette.primary, flexDirection: 'row', gap: 9, alignItems: 'center', justifyContent: 'center' },
   buttonDisabled: { opacity: 0.4 }, primaryText: { color: palette.surface, fontSize: 15, fontWeight: '800' },
   scan: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 19 }, scanText: { color: palette.primary, fontSize: 13, fontWeight: '700', marginLeft: 7 },
-  tip: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ECECE7', borderRadius: 14, padding: 12, marginTop: 8 }, tipText: { flex: 1, color: palette.muted, fontSize: 10, marginLeft: 8, lineHeight: 15 },
   previewCard: { backgroundColor: palette.surface, borderRadius: 22, paddingHorizontal: 18, marginBottom: 16, ...shadow },
   previewRow: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 18 }, previewCopy: { flex: 1, marginLeft: 13 },
   previewLabel: { color: palette.muted, fontSize: 10, fontWeight: '700', marginBottom: 4 }, previewValue: { color: palette.ink, fontSize: 16, lineHeight: 23, fontWeight: '800' }, previewTime: { color: palette.primary, fontSize: 13, fontWeight: '700', marginTop: 4 },

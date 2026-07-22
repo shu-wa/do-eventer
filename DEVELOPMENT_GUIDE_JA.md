@@ -120,7 +120,6 @@ app/join.tsx               招待コード参加画面
 app/event/[id].tsx         イベント詳細画面
 app/event/[id]/chat.tsx    チャット画面
 components/                複数画面で使う部品
-data/events.ts             サンプルイベント
 context/event-context.tsx  イベントの状態と追加処理
 constants/theme.ts         色、文字、影
 types/event.ts             データの形
@@ -148,24 +147,9 @@ accent: '#F47B52',
 
 同じ色設定を多くの画面が利用するため、ここを変更するとアプリ全体の印象が揃って変わります。
 
-### サンプルイベントを変更する
+### イベント表示を確認する
 
-`data/events.ts` の `sampleEvents` を編集します。イベントの基本構造は次の通りです。
-
-```ts
-{
-  id: 'unique-event-id',
-  title: 'イベント名',
-  startDate: '2026-08-10',
-  endDate: '2026-08-11',
-  location: '集合場所',
-  inviteCode: 'INVITE10',
-  participants: [],
-  schedule: [],
-}
-```
-
-`id` と `inviteCode` はイベントごとに重複しない値を使います。
+架空のイベントは自動投入されません。画面確認には、アプリの「イベントを作る」から実際にイベントを作成してください。招待・参加・権限の確認は、Supabaseへ接続した複数のテストアカウントで行います。
 
 ### 新しい画面を作る
 

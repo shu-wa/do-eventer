@@ -1,4 +1,5 @@
 import { palette, shadow } from '@/constants/theme';
+import { formatEventMonth, getEventDisplayStatus } from '@/lib/event-display';
 import { EventItem } from '@/types/event';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -7,11 +8,12 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 type Props = { event: EventItem; featured?: boolean; compact?: boolean };
 
 export function EventCard({ event, featured = false, compact = false }: Props) {
+  const displayStatus = getEventDisplayStatus(event);
   if (compact) {
     return (
       <TouchableOpacity style={styles.compact} onPress={() => router.push(`/event/${event.id}`)} activeOpacity={0.82}>
         <View style={[styles.dateBlock, { backgroundColor: event.coverColor }]}>
-          <Text style={[styles.dateMonth, { color: event.accentColor }]}>AUG</Text>
+          <Text style={[styles.dateMonth, { color: event.accentColor }]}>{formatEventMonth(event.startDate)}</Text>
           <Text style={[styles.dateDay, { color: event.accentColor }]}>{event.startDate.slice(-2)}</Text>
         </View>
         <View style={styles.compactCopy}>
@@ -28,7 +30,7 @@ export function EventCard({ event, featured = false, compact = false }: Props) {
       <View style={[styles.cover, { backgroundColor: event.coverColor }]}>
         <View style={styles.coverTop}>
           <View style={[styles.category, { backgroundColor: event.accentColor }]}><Text style={styles.categoryText}>{event.category}</Text></View>
-          <View style={styles.status}><View style={[styles.statusDot, { backgroundColor: event.accentColor }]} /><Text style={styles.statusText}>{event.status}</Text></View>
+          <View style={styles.status}><View style={[styles.statusDot, { backgroundColor: event.accentColor }]} /><Text style={styles.statusText}>{displayStatus}</Text></View>
         </View>
         <View style={styles.coverArt}>
           <View style={[styles.sun, { backgroundColor: event.accentColor }]} />
@@ -38,7 +40,7 @@ export function EventCard({ event, featured = false, compact = false }: Props) {
       </View>
       <View style={styles.body}>
         <Text style={styles.title}>{event.title}</Text>
-        <Text style={styles.tagline}>{event.tagline}</Text>
+        {event.tagline ? <Text style={styles.tagline}>{event.tagline}</Text> : null}
         <View style={styles.metaRow}><Ionicons name="calendar-outline" size={16} color={event.accentColor} /><Text style={styles.meta}>{event.dateLabel} · {event.timeLabel}</Text></View>
         <View style={styles.metaRow}><Ionicons name="location-outline" size={16} color={event.accentColor} /><Text style={styles.meta}>{event.location}</Text></View>
         <View style={styles.footer}>
@@ -47,7 +49,7 @@ export function EventCard({ event, featured = false, compact = false }: Props) {
               <View key={person.id} style={[styles.miniAvatar, { backgroundColor: person.avatarColor, marginLeft: index === 0 ? 0 : -8 }]}><Text style={styles.miniAvatarText}>{person.initials}</Text></View>
             ))}
           </View>
-          <Text style={styles.memberCount}>{event.participants.length}人参加 · 残り{event.capacity - event.participants.length}枠</Text>
+          <Text style={styles.memberCount}>{event.participants.length}人参加</Text>
         </View>
       </View>
     </TouchableOpacity>
